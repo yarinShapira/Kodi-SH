@@ -27,13 +27,12 @@ jobs:
 
       - name: Clone source
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO_SLUG: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
           REF_NAME: ${{ github.head_ref || github.ref_name }}
         run: |
           set -euo pipefail
-          git clone --depth=1 --branch "$REF_NAME" \
-            "https://github.com/${REPO_SLUG}.git" \
-            src
+          gh repo clone "$REPO_SLUG" src -- --depth=1 --branch "$REF_NAME"
 
       - name: Block generated binary artifacts in git
         run: |
