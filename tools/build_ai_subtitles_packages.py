@@ -48,6 +48,7 @@ STANDALONE_LIB_FILES = {
     "gemini_pair.py",
     "gemini_quota.py",
     "google_translate.py",
+    "he_sub_match.py",
     "kodi_utils.py",
     "language_detect.py",
     "local_subs.py",
@@ -59,6 +60,7 @@ STANDALONE_LIB_FILES = {
     "skin_dialog_subtitles_row_patcher.py",
     "srt.py",
     "telemetry.py",
+    "subs_chooser.py",
     "subs_engine_bridge.py",
     "subs_filename_publisher.py",
     "tmdb_helper.py",
@@ -719,7 +721,7 @@ def include_standalone(rel: Path) -> bool:
     if len(parts) >= 2 and parts[1] == "patches":
         return parts[2:3] == ("darksubs",)
     if len(parts) >= 3 and parts[1] == "lib":
-        if parts[2] == "icons":
+        if parts[2] in {"icons", "pyxbmct"}:
             return True
         # The vendored sources engine: ship it in the standalone too, so the
         # repo-channel add-on can fetch subtitles on its own (sources +
@@ -769,11 +771,15 @@ def inject_pool_secret(addon_dst: Path) -> None:
               "left in place; this build CANNOT use the community pool.")
         return
     import py_compile
-    new_txt = txt.replace("'__POOL_SECRET__'", repr(secret))
-    if new_txt == txt:
-        new_txt = txt.replace('"__POOL_SECRET__"', repr(secret))
-    if new_txt == txt:
-        new_txt = txt.replace("__POOL_SECRET__", secret)
+    new_txt, count = re.subn(
+        r"^POOL_SECRET\s*=\s*(['\"])__POOL_SECRET__\1",
+        "POOL_SECRET = {0}".format(repr(secret)),
+        txt,
+        count=1,
+        flags=re.M,
+    )
+    if count != 1:
+        raise RuntimeError('POOL_SECRET assignment placeholder not found')
     pool_py.write_text(new_txt, encoding="utf-8")
     py_compile.compile(str(pool_py), doraise=True)
     print(f"  pool secret injected ({len(secret)} chars)")

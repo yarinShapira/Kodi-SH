@@ -38,6 +38,7 @@ from resources.libs.common import logging
 from resources.libs.common import tools
 from resources.libs.common.config import CONFIG
 from resources.libs.downloader import Downloader
+import uservar
 
 
 def _version_key(value):
@@ -323,7 +324,10 @@ class Wizard:
             # the pre-update list, the addon DB lies about the version,
             # etc. The user-triggered manual install still has its own
             # safety prompt; this code path is the auto/manual quickfix.
-            extract.all(lib, CONFIG.HOME, ignore=True, title=title)
+            _prog, errors, error = extract.all(lib, CONFIG.HOME, ignore=True, title=title)
+            if errors:
+                logging.log('[QUICK-UPDATE] Extraction failed: {0}'.format(error), level=xbmc.LOGERROR)
+                return False
             # skin.skin_to_default('Build Install')
             # skin.look_and_feel_data('save')
             installed = db.grab_addons(lib)
@@ -1178,15 +1182,13 @@ def kodi_apk_update_check(kodi_version_update_check_manual, os_type_label):
     try:
 
         LATEST_APK_VERSION_TEXT_FILE = tools.open_url(CONFIG.LATEST_APK_VERSION_TEXT_FILE).text.strip()
-        # Kodi-SH publishes release labels such as 21.3-kodish.2 here. Compare
-        # their numeric components to Kodi's runtime version so APK-only fixes
-        # (same upstream Kodi core, newer release label/versionCode) can prompt.
-        is_new_version_available = _is_newer_version(LATEST_APK_VERSION_TEXT_FILE, CONFIG.KODIV)
+        installed_apk_version = getattr(uservar, 'APK_RELEASE_VERSION', str(CONFIG.KODIV))
+        is_new_version_available = _is_newer_version(LATEST_APK_VERSION_TEXT_FILE, installed_apk_version)
         
         if is_new_version_available:
 
             yes_pressed = dialog.yesno(f"{CONFIG.ADDONTITLE} ({os_type_label})",
-                               f'[COLOR yellow][B]קיים עדכון גרסה לאפליקציה שלנו![/B][/COLOR]\nגרסת קודי נוכחית: [B][COLOR red]{CONFIG.KODIV}[/COLOR][/B]\nגרסת קודי מעודכנת: [B][COLOR limegreen]{LATEST_APK_VERSION_TEXT_FILE}[/COLOR][/B]\nהאם ברצונך לעדכן את האפליקציה?',
+                               f'[COLOR yellow][B]קיים עדכון גרסה לאפליקציה שלנו![/B][/COLOR]\nגרסת APK נוכחית: [B][COLOR red]{installed_apk_version}[/COLOR][/B]\nגרסת APK מעודכנת: [B][COLOR limegreen]{LATEST_APK_VERSION_TEXT_FILE}[/COLOR][/B]\nהאם ברצונך לעדכן את האפליקציה?',
                                nolabel='[B][COLOR red]מאוחר יותר[/COLOR][/B]',
                                yeslabel='[B][COLOR springgreen]עדכן[/COLOR][/B]')
                                
@@ -1249,7 +1251,7 @@ def kodi_apk_update_check(kodi_version_update_check_manual, os_type_label):
                 return
                     
         elif kodi_version_update_check_manual:
-            dialog.ok(f"{CONFIG.ADDONTITLE} ({os_type_label})", f'[COLOR yellow][B]לא קיים עדכון לאפליקציה![/B][/COLOR]\nגרסת קודי נוכחית: [B][COLOR limegreen]{CONFIG.KODIV}[/COLOR][/B]\nגרסת קודי מעודכנת: [B][COLOR limegreen]{LATEST_APK_VERSION_TEXT_FILE}[/COLOR][/B]')
+            dialog.ok(f"{CONFIG.ADDONTITLE} ({os_type_label})", f'[COLOR yellow][B]לא קיים עדכון לאפליקציה![/B][/COLOR]\nגרסת APK נוכחית: [B][COLOR limegreen]{installed_apk_version}[/COLOR][/B]\nגרסת APK מעודכנת: [B][COLOR limegreen]{LATEST_APK_VERSION_TEXT_FILE}[/COLOR][/B]')
                          
     except Exception as e:
         logging.log(f'[kodi_version_update_check] Exception: {str(e)}')

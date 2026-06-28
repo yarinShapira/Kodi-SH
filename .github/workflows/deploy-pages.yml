@@ -48,6 +48,9 @@ jobs:
 
           cd src
           PUBLISH_PATHS="$(git ls-tree --name-only HEAD | grep -vxE 'dist|\.github|\.secrets')"
+          cd ../gh
+          find . -mindepth 1 ! -path './.git' ! -path './.git/*' -exec rm -rf {} +
+          cd ../src
           git archive HEAD -- $PUBLISH_PATHS | tar -x -C ../gh
           # Build the subtitle package through the packaging script so the
           # standalone zip is slim and reproducible. Do not inject POOL_SECRET

@@ -51,6 +51,10 @@ WINDOWS_DOWNLOAD_URL = "https://github.com/yarinShapira/Kodi-SH/releases/latest/
 WINDOWS_INSTALLATION_PATH = "C:\\Program Files\\Kodi"
 # ANDROID APK
 LATEST_APK_VERSION_TEXT_FILE = 'https://raw.githubusercontent.com/yarinShapira/Kodi-SH/main/wizard/assets/kodi_version_auto_update/apk/latest_apk_version.txt'
+# Patched by build-apk.yml before bundling the wizard into each APK. Used for
+# in-app update comparisons so APK-only releases do not loop forever against
+# Kodi's core System.BuildVersion.
+APK_RELEASE_VERSION = '21.3-kodish.1'
 APK_DOWNLOAD_URL = 'https://yarinshapira.github.io/Kodi-SH/downloads/'
 # Primary package id our side-by-side APK ships under. Keep it the same
 # length as org.xbmc.kodi unless switching to a full from-source Kodi build.

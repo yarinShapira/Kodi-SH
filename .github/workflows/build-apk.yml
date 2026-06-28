@@ -71,8 +71,10 @@ jobs:
       - name: Prepare release input zips
         run: |
           set -euo pipefail
+          VERSION="${{ github.event.inputs.version }}"
           INPUTS="$RUNNER_TEMP/release-inputs"
           mkdir -p "$INPUTS"
+          python3 -c "from pathlib import Path; import re; p=Path('src/wizard/source/plugin.program.kodipovilwizard/uservar.py'); text=p.read_text(); p.write_text(re.sub(r'^APK_RELEASE_VERSION = .*$', \"APK_RELEASE_VERSION = '$VERSION'\", text, flags=re.M))"
           (cd src/wizard/source && zip -qr "$INPUTS/wizard.zip" "$WIZARD_ID")
           curl -fL --retry 3 -o "$INPUTS/build.zip" "${{ github.event.inputs.build_zip_url }}"
           test -s "$INPUTS/wizard.zip"
