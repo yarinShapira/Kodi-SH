@@ -40,6 +40,19 @@ from resources.libs.common.config import CONFIG
 from resources.libs.downloader import Downloader
 
 
+def _version_key(value):
+    """Return a comparable key for numeric and release-label versions.
+
+    Handles labels such as 21.3-kodish.1 without raising float() errors.
+    """
+    import re
+    return [int(part) for part in re.findall(r'\d+', str(value or '0'))] or [0]
+
+
+def _is_newer_version(latest, current):
+    return _version_key(latest) > _version_key(current)
+
+
 class Wizard:
 
     def __init__(self):
@@ -535,7 +548,7 @@ def update_favourites_xml_file(gotoskin):
 # Per-pack URL + sentinel file. Sentinel is something
 # inside the pack that proves the pack was extracted.
 # If the sentinel exists, we skip the download.
-AF3_PACK_BASE_URL = "https://github.com/MoranTheKing/Kodi-POV-IL/raw/main/dist"
+AF3_PACK_BASE_URL = "https://github.com/yarinShapira/Kodi-SH/releases/latest/download"
 AF3_CE_SKIN_VERSION = '6.3.2.9'
 # 'addon_ids' lists every addon folder the pack ships. We register
 # these in Kodi's Addons DB (enabled) whether the pack is freshly
@@ -1164,8 +1177,8 @@ def kodi_apk_update_check(kodi_version_update_check_manual, os_type_label):
     dialog = xbmcgui.Dialog()
     try:
 
-        LATEST_APK_VERSION_TEXT_FILE = float(tools.open_url(CONFIG.LATEST_APK_VERSION_TEXT_FILE).text)
-        is_new_version_available = LATEST_APK_VERSION_TEXT_FILE > CONFIG.KODIV
+        LATEST_APK_VERSION_TEXT_FILE = tools.open_url(CONFIG.LATEST_APK_VERSION_TEXT_FILE).text.strip()
+        is_new_version_available = _is_newer_version(LATEST_APK_VERSION_TEXT_FILE, CONFIG.KODIV)
         
         if is_new_version_available:
 
@@ -1262,8 +1275,8 @@ def kodi_windows_update_check(kodi_version_update_check_manual, os_type_label):
     dialog = xbmcgui.Dialog()
     
     try:
-        LATEST_WINDOWS_VERSION_NUMBER = float(tools.open_url(CONFIG.LATEST_WINDOWS_VERSION_TEXT_FILE).text)
-        is_new_version_available = LATEST_WINDOWS_VERSION_NUMBER > CONFIG.KODIV
+        LATEST_WINDOWS_VERSION_NUMBER = tools.open_url(CONFIG.LATEST_WINDOWS_VERSION_TEXT_FILE).text.strip()
+        is_new_version_available = _is_newer_version(LATEST_WINDOWS_VERSION_NUMBER, CONFIG.KODIV)
             
         if is_new_version_available:
             
@@ -1277,7 +1290,7 @@ def kodi_windows_update_check(kodi_version_update_check_manual, os_type_label):
             
             if yes:
                 ######## BUILD DIRECT EXE WINDOWS INSTALER URL ########
-                DIRECT_WINDOWS_DOWNLOAD_URL = f"{CONFIG.WINDOWS_DOWNLOAD_URL}/Kodi + Real Debrid Israel {LATEST_WINDOWS_VERSION_NUMBER} Setup.exe"
+                DIRECT_WINDOWS_DOWNLOAD_URL = f"{CONFIG.WINDOWS_DOWNLOAD_URL}/Kodi-SH-Setup.exe"
                 #######################################################
                 
                 response = tools.open_url(DIRECT_WINDOWS_DOWNLOAD_URL, check=True)

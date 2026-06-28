@@ -6,9 +6,9 @@
        provider-name="Yarin">
   <extension point="xbmc.addon.repository" name="Kodi-SH - תרגום AI">
     <dir>
-      <info compressed="false">https://<owner>.github.io/Kodi-SH/repo/addons.xml</info>
-      <checksum>https://<owner>.github.io/Kodi-SH/repo/addons.xml.md5</checksum>
-      <datadir zip="true">https://<owner>.github.io/Kodi-SH/repo/zips/</datadir>
+      <info compressed="false">https://yarinShapira.github.io/Kodi-SH/repo/addons.xml</info>
+      <checksum>https://yarinShapira.github.io/Kodi-SH/repo/addons.xml.md5</checksum>
+      <datadir zip="true">https://yarinShapira.github.io/Kodi-SH/repo/zips/</datadir>
     </dir>
   </extension>
   <extension point="xbmc.addon.metadata">

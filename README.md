@@ -71,7 +71,7 @@ The wizard reads build metadata from:
 
 After GitHub Pages deploys, add this source in Kodi:
 
-`https://<owner>.github.io/Kodi-SH/wizard/`
+`https://yarinShapira.github.io/Kodi-SH/wizard/`
 
 Then open:
 
@@ -95,7 +95,7 @@ When the quick update number increases, installed builds receive the `gui` packa
 
 See `SECURITY.md` for the GitHub settings that should be enabled to prevent accidental force-pushes, branch deletion, or unreviewed changes.
 
-`CODEOWNERS` is configured for `@<owner>`; GitHub branch protection must enable "Require review from Code Owners" for this to be enforced.
+`CODEOWNERS` is configured for `@yarinShapira`; GitHub branch protection must enable "Require review from Code Owners" for this to be enforced.
 
 ## APK Downloads
 

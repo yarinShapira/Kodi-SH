@@ -14,14 +14,14 @@ CUSTOM_ART = os.path.join(PATH, 'resources', 'kodi_rd_israel_art')
 #########################################################
 #        User Edit Variables                            #
 #########################################################
-ADDONTITLE = '[COLOR yellow]Kodi POV IL Wizard[/COLOR]'
-BUILDERNAME = '[COLOR yellow]Kodi POV IL[/COLOR]'
+ADDONTITLE = '[COLOR yellow]Kodi-SH Wizard[/COLOR]'
+BUILDERNAME = '[COLOR yellow]Kodi-SH[/COLOR]'
 # KODI-RD-IL - Fallback build name. Used by startup.py to populate the
 # 'buildname' setting on APK installs where the user never went through
 # a wizard-driven Fresh Install (so the setting is empty and the whole
 # auto_quick_update path was getting silently no-op'd). Must match the
 # name="..." value in build.txt.
-BUILDNAME_DEFAULT = 'Kodi POV IL - FENtastic'
+BUILDNAME_DEFAULT = 'Kodi-SH - FENtastic'
 # KODI-RD-IL - Fallback build VERSION. Used by startup.py to populate
 # the 'buildversion' setting at the same time we populate 'buildname'.
 # Without this, the wizard's build_update_check sees an empty
@@ -29,10 +29,10 @@ BUILDNAME_DEFAULT = 'Kodi POV IL - FENtastic'
 # triggers a destructive full-build-install dialog that wipes the
 # user's connected services. Should be kept aligned with the version
 # we ship in dist/Kodi-POV-IL-FENtastic-test-*.zip.
-BUILDVERSION_DEFAULT = '0.1.45'
+BUILDVERSION_DEFAULT = '0.1.101'
 EXCLUDES = [ADDON_ID]
 # Text File with build info in it. Please read https://github.com/a4k-openproject/plugin.program.openwizard/wiki/Installing-Builds
-BUILDFILE = 'https://raw.githubusercontent.com/MoranTheKing/Kodi-POV-IL/main/wizard/assets/build.txt'
+BUILDFILE = 'https://raw.githubusercontent.com/yarinShapira/Kodi-SH/main/wizard/assets/build.txt'
 # How often you would like it to check for build updates in days
 # 0 being every startup of kodi
 UPDATECHECK = 0
@@ -41,26 +41,26 @@ APKFILE = 'http://'
 
 #########################################################
 # KODI-RD-IL - BUILD SKIN SWITCH
-BUILD_SKIN_SWITCH_IMAGE_URL = 'https://github.com/MoranTheKing/Kodi-POV-IL/raw/main/wizard/assets/build_menu_screenshots/pov_il_splash.jpg'
+BUILD_SKIN_SWITCH_IMAGE_URL = 'https://raw.githubusercontent.com/yarinShapira/Kodi-SH/main/wizard/assets/build_menu_screenshots/pov_il_splash.jpg'
 # KODI-RD-IL - AUTO QUICK UPDATES
-QUICK_UPDATE_NOTIFICATION_URL = 'https://raw.githubusercontent.com/MoranTheKing/Kodi-POV-IL/main/wizard/assets/notification_files/quick_update.txt'
+QUICK_UPDATE_NOTIFICATION_URL = 'https://raw.githubusercontent.com/yarinShapira/Kodi-SH/main/wizard/assets/notification_files/quick_update.txt'
 # KODI-RD-IL - AUTO ANDROID/WINDOWS UPDATE
 # WINDOWS SOFTWARE
-LATEST_WINDOWS_VERSION_TEXT_FILE = 'https://raw.githubusercontent.com/MoranTheKing/Kodi-POV-IL/main/wizard/assets/kodi_version_auto_update/windows/latest_windows_version.txt'
-WINDOWS_DOWNLOAD_URL = "https://morantheking.github.io/Kodi-POV-IL/downloads/windows/"
+LATEST_WINDOWS_VERSION_TEXT_FILE = 'https://raw.githubusercontent.com/yarinShapira/Kodi-SH/main/wizard/assets/kodi_version_auto_update/windows/latest_windows_version.txt'
+WINDOWS_DOWNLOAD_URL = "https://github.com/yarinShapira/Kodi-SH/releases/latest/download"
 WINDOWS_INSTALLATION_PATH = "C:\\Program Files\\Kodi"
 # ANDROID APK
-LATEST_APK_VERSION_TEXT_FILE = 'https://raw.githubusercontent.com/MoranTheKing/Kodi-POV-IL/main/wizard/assets/kodi_version_auto_update/apk/latest_apk_version.txt'
-APK_DOWNLOAD_URL = 'https://morantheking.github.io/Kodi-POV-IL/downloads/'
+LATEST_APK_VERSION_TEXT_FILE = 'https://raw.githubusercontent.com/yarinShapira/Kodi-SH/main/wizard/assets/kodi_version_auto_update/apk/latest_apk_version.txt'
+APK_DOWNLOAD_URL = 'https://yarinshapira.github.io/Kodi-SH/downloads/'
 # Primary package id our side-by-side APK ships under. Keep it the same
 # length as org.xbmc.kodi unless switching to a full from-source Kodi build.
-APK_PACKAGE_ID = 'org.xbmc.povi'
+APK_PACKAGE_ID = 'org.xbmc.kdsh'
 # Every package id we have ever shipped. The update check treats all of these
 # as "our app" so people on an old org.xbmc.kodirdil build (or the short-lived
 # org.moran.kodi / org.mora.kodi rename attempts) still get the update prompt.
-APK_PACKAGE_IDS = ['org.xbmc.povi', 'org.xbmc.kodi', 'org.xbmc.kodirdil', 'org.moran.kodi', 'org.mora.kodi']
+APK_PACKAGE_IDS = ['org.xbmc.kdsh', 'org.xbmc.povi', 'org.xbmc.kodi', 'org.xbmc.kodirdil', 'org.moran.kodi', 'org.mora.kodi']
 APK_DOWNLOADER_CODE = ''
-APK_DOWNLOADER_CODE_IMAGE_URL = 'https://raw.githubusercontent.com/MoranTheKing/Kodi-POV-IL/main/wizard/assets/kodi_version_auto_update/apk/apk_downloader_code.png'
+APK_DOWNLOADER_CODE_IMAGE_URL = 'https://raw.githubusercontent.com/yarinShapira/Kodi-SH/main/wizard/assets/kodi_version_auto_update/apk/apk_downloader_code.png'
 #########################################################
 
 # Text File with Youtube Videos urls.  Leave as 'http://' to ignore
@@ -106,7 +106,7 @@ COLOR_LIMEGREEN = 'limegreen'
 COLOR_YELLOW = 'yellow'
 COLOR_WHITE = 'white'
 # Primary menu items   / {0} is the menu item and is required
-THEME1 = u'[COLOR {color1}][I][COLOR {color1}][B]Kodi POV IL[/B][/COLOR][COLOR {color2}][COLOR {color1}] - [/I][/COLOR] [COLOR {color2}]{{}}[/COLOR]'.format(color1=COLOR1, color2=COLOR2)
+THEME1 = u'[COLOR {color1}][I][COLOR {color1}][B]Kodi-SH[/B][/COLOR][COLOR {color2}][COLOR {color1}] - [/I][/COLOR] [COLOR {color2}]{{}}[/COLOR]'.format(color1=COLOR1, color2=COLOR2)
 # Build Names          / {0} is the menu item and is required
 THEME2 = u'[COLOR {color1}]{{}}[/COLOR]'.format(color1=COLOR1)
 # Alternate items      / {0} is the menu item and is required
@@ -158,7 +158,7 @@ REPOZIPURL = 'https://'
 # Enable Notification screen Yes or No
 ENABLE = 'No'
 # Url to notification file
-NOTIFICATION = 'https://raw.githubusercontent.com/MoranTheKing/Kodi-POV-IL/main/wizard/assets/notification_files/build_first_launch.txt'
+NOTIFICATION = 'https://raw.githubusercontent.com/yarinShapira/Kodi-SH/main/wizard/assets/notification_files/build_first_launch.txt'
 # Use either 'Text' or 'Image'
 HEADERTYPE = 'Image'
 # Font size of header

@@ -39,7 +39,7 @@
                 <aspectratio aligny="center" align="center">keep</aspectratio>
                 <visible>Skin.String(headerimagetype)</visible>
             </control>
-            <!-- -------------------------------------------------------------- -->
+            <!-- separator -->
             <control type="textbox" id="104">
                 <left>27</left>
                 <top>85</top>

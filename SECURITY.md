@@ -1,6 +1,6 @@
 # Security Policy
 
-This repository is maintained by <owner>.
+This repository is maintained by yarinShapira.
 
 Only trusted maintainers should have write access. Do not add external collaborators unless they are expected to publish build files, APK files, or GitHub Pages content.
 
@@ -27,7 +27,7 @@ Enable these settings in GitHub to prevent accidental or unauthorized changes:
    Use `Deploy from a branch`, branch `gh-pages`, folder `/`.
 
 5. Settings -> Actions -> General:
-   Use "Allow <owner>, and select non-<owner>, actions and reusable workflows" if you want strict workflow control.
+   Use "Allow yarinShapira, and select non-yarinShapira, actions and reusable workflows" if you want strict workflow control.
 
 ## APK Signing
 

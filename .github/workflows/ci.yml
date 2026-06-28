@@ -27,7 +27,7 @@ jobs:
 
       - name: Clone source
         env:
-          REPO_SLUG: ${{ github.repository }}
+          REPO_SLUG: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
           REF_NAME: ${{ github.head_ref || github.ref_name }}
         run: |
           set -euo pipefail
@@ -39,7 +39,7 @@ jobs:
         run: |
           set -euo pipefail
           cd src
-          if git ls-files | grep -E '\.(zip|apk|exe|msi|dmg|enc|keystore|jks)$'; then
+          if git ls-files | grep -E '\.(zip|apk|exe|msi|dmg|keystore|jks)$|(^|/)release\.keystore$|\.enc$' | grep -v '^.secrets/release.keystore.enc$'; then
             echo "::error::Generated binary/signing artifacts must not be committed. Publish them as release assets."
             exit 1
           fi
@@ -50,6 +50,7 @@ jobs:
           cd src
           python3 -m compileall -q \
             addons/service.subtitles.kodipovilai \
+            wizard/source/plugin.program.kodipovilwizard \
             .github/scripts \
             tools
 

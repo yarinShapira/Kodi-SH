@@ -26,7 +26,7 @@ A clean local seed repo exists at:
 /home/yarin/Kodi-SH
 ```
 
-It was created from upstream `<owner>/Kodi-SH` commit `baa4e16`, excluding large `dist/` artifacts and deleting copied `.zip/.apk/.exe/.enc` artifacts.
+It was created from upstream `yarinShapira/Kodi-SH` commit `baa4e16`, excluding large `dist/` artifacts and deleting copied `.zip/.apk/.exe/.enc` artifacts.
 
 Initial verification already run:
 
@@ -89,11 +89,11 @@ Expected/current result: core compile succeeds and all workflow YAML files parse
 
 **Steps:**
 1. Replace display copy with `Kodi-SH`.
-2. Replace GitHub Pages URLs with placeholder `https://<owner>.github.io/Kodi-SH/` until the GitHub repo exists.
+2. Replace GitHub Pages URLs with placeholder `https://yarinShapira.github.io/Kodi-SH/` until the GitHub repo exists.
 3. Fix known doc mismatch: package id must be `org.xbmc.kdsh` consistently, not `org.xbmc.kdsh`.
 4. Run a text scan:
    ```bash
-   search_files equivalent: Kodi-SH|Kodi-SH|<owner>|<owner>
+   search_files equivalent: Kodi-SH|Kodi-SH|yarinShapira|yarinShapira
    ```
 5. Commit:
    ```bash
@@ -161,7 +161,7 @@ Expected/current result: core compile succeeds and all workflow YAML files parse
 **Steps:**
 1. Phase 1 safe path: keep addon ids unchanged but rebrand display names and URLs.
 2. Phase 2 optional path: rename `repository.kodipovilai` to `repository.kodish` and update zips/build tooling.
-3. Update repo URLs to `https://<owner>.github.io/Kodi-SH/repo/...`.
+3. Update repo URLs to `https://yarinShapira.github.io/Kodi-SH/repo/...`.
 4. Commit:
    ```bash
    git add repository repo

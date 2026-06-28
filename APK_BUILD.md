@@ -22,7 +22,7 @@ Neither workflow uses any third-party `actions/*` ג€” just system tools and
 
 5. **Done.** A Release tagged `v21.3-povil.1` appears under `Releases` with six attachments (versioned + stable filenames for 32-bit, 64-bit, Windows). The download pages on the GitHub Pages site already link to the stable filenames via `/releases/latest/download/`, so they go live automatically.
 
-6. **Optional ג€” register a Downloader code.** Submit one of the public URLs (e.g. `https://github.com/<owner>/Kodi-SH/releases/latest/download/Kodi-SH-64bit.apk`) to `https://www.aftvnews.com/downloader/`, copy the numeric code it returns, and ask Claude to wire it into `uservar.py`.
+6. **Optional ג€” register a Downloader code.** Submit one of the public URLs (e.g. `https://github.com/yarinShapira/Kodi-SH/releases/latest/download/Kodi-SH-64bit.apk`) to `https://www.aftvnews.com/downloader/`, copy the numeric code it returns, and ask Claude to wire it into `uservar.py`.
 
 ## Package id: org.xbmc.kdsh (side-by-side Android install)
 

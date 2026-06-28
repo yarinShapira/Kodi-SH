@@ -25,3 +25,7 @@ out/
 build/
 decoded/
 *.tmp
+
+# The encrypted release keystore is intentionally committed; the password stays in GitHub Secrets.
+!.secrets/
+!.secrets/release.keystore.enc

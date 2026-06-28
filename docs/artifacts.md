@@ -17,8 +17,9 @@ The following are generated artifacts and must be published as GitHub Release as
 - `*.zip`
 - `*.apk`
 - `*.exe`
-- encrypted signing material such as `.secrets/*.enc`
-- local keystores and build work directories
+- local unencrypted keystores and build work directories
+
+Exception: `.secrets/release.keystore.enc` is intentionally tracked so CI can sign updates; its password must remain only in GitHub Secrets.
 
 ## Why
 

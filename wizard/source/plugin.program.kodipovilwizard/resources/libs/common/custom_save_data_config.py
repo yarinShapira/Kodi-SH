@@ -22,9 +22,9 @@ context.verify_mode = ssl.CERT_NONE
 ######################################################################
 
 # GitHub links for custom_save_data_config.json and build_addons_whitelist.txt + build_addons_blacklist files
-custom_save_data_config_github_url = "https://raw.githubusercontent.com/MoranTheKing/Kodi-POV-IL/main/wizard/assets/custom_save_data_config/custom_save_data_config.json"
-build_addons_whitelist_github_url = "https://raw.githubusercontent.com/MoranTheKing/Kodi-POV-IL/main/wizard/assets/custom_save_data_config/build_addons_whitelist.txt"
-build_addons_blacklist_github_url = "https://raw.githubusercontent.com/MoranTheKing/Kodi-POV-IL/main/wizard/assets/custom_save_data_config/build_addons_blacklist.txt"
+custom_save_data_config_github_url = "https://raw.githubusercontent.com/yarinShapira/Kodi-SH/main/wizard/assets/custom_save_data_config/custom_save_data_config.json"
+build_addons_whitelist_github_url = "https://raw.githubusercontent.com/yarinShapira/Kodi-SH/main/wizard/assets/custom_save_data_config/build_addons_whitelist.txt"
+build_addons_blacklist_github_url = "https://raw.githubusercontent.com/yarinShapira/Kodi-SH/main/wizard/assets/custom_save_data_config/build_addons_blacklist.txt"
 
 
 def _read_url_text(url, default=''):

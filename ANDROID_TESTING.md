@@ -36,11 +36,11 @@ Choose a fresh install if you want this test build to replace the old POV build 
 
 Direct GitHub download:
 
-`https://github.com/<owner>/Kodi-SH/raw/main/dist/plugin.program.kodipovilwizard-latest.zip`
+`https://github.com/yarinShapira/Kodi-SH/raw/main/dist/plugin.program.kodipovilwizard-latest.zip`
 
 Kodi file source after GitHub Pages deploys:
 
-`https://<owner>.github.io/Kodi-SH/wizard/`
+`https://yarinShapira.github.io/Kodi-SH/wizard/`
 
 Path in Kodi:
 

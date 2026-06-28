@@ -1,17 +1,7 @@
 name: Deploy GitHub Pages
 
-# Sync main into gh-pages so GitHub Pages serves the latest commit
-# from main. Uses only git + the workflow's automatic GITHUB_TOKEN --
-# no third-party actions (so the repo's "owner-approved actions only"
-# policy can stay locked down).
-#
-# Strategy: fetch the existing gh-pages branch, replace its tree with
-# whatever's currently on main, commit, and regular-push. This way
-# the gh-pages branch keeps a linear history -- no force push needed,
-# so the "Disable force pushes" branch protection rule stays satisfied.
-#
-# Requires GitHub Pages settings:
-#   Source = "Deploy from a branch", Branch = "gh-pages", Folder = "/".
+# Sync main into gh-pages and generate lightweight Kodi repository/wizard zips
+# at publish time. Release/build binaries stay out of source control.
 
 on:
   push:
@@ -36,47 +26,68 @@ jobs:
           PUSHED_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          REMOTE="https://x-access-token:${GH_TOKEN}@github.com/${REPO_SLUG}.git"
-          # Blobless + no-checkout clone of gh-pages: we replace its whole tree
-          # anyway, so we must NOT download its (possibly multi-GB) existing
-          # blobs -- that is what filled the runner disk ("No space left on
-          # device"). This pulls only the branch ref/history so we can extend
-          # it (no force push -> branch protection stays satisfied).
-          git clone --depth=1 --single-branch --branch=gh-pages \
-            --filter=blob:none --no-checkout "$REMOTE" gh
-          cd gh
+          REMOTE="https://github.com/${REPO_SLUG}.git"
+          gh auth setup-git
+
+          if git ls-remote --exit-code --heads "$REMOTE" gh-pages >/dev/null 2>&1; then
+            git clone --depth=1 --single-branch --branch=gh-pages \
+              --filter=blob:none --no-checkout "$REMOTE" gh
+            cd gh
+          else
+            mkdir gh
+            cd gh
+            git init -b gh-pages
+            git remote add origin "$REMOTE"
+          fi
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
           cd ..
-          # Blobless clone of main; we only pull the blobs we actually publish.
+
           git clone --depth=1 --single-branch --branch=main \
             --filter=blob:none "$REMOTE" src
-          # Publish main's tree EXCEPT:
-          #   dist/    -- the build/quickfix binaries (many GB) are fetched from
-          #               raw.githubusercontent.com/<repo>/main/dist/, NOT from
-          #               Pages, so they must never be copied to gh-pages.
-          #   .github/  -- GITHUB_TOKEN cannot push workflow files.
-          #   .secrets/ -- the (encrypted) signing keystore; never publish it.
-          # Everything Pages actually serves (repo/ addon channel, wizard/,
-          # index.html, install.html, ...) is kept.
+
           cd src
           PUBLISH_PATHS="$(git ls-tree --name-only HEAD | grep -vxE 'dist|\.github|\.secrets')"
-          # shellcheck disable=SC2086
           git archive HEAD -- $PUBLISH_PATHS | tar -x -C ../gh
           cd ..
-          # Publish the latest release APKs as DIRECT files under downloads/ so
-          # the Downloader app (and any browser) can fetch them in a single 200
-          # response. GitHub Releases' redirect chain breaks Downloader, and an
-          # AFTVnews code that points at the /downloads/ HTML page just hands
-          # Downloader an unusable web page. These live on gh-pages ONLY (never
-          # committed to main), so the source repo isn't bloated with binaries;
-          # identical bytes across deploys produce no new commit.
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import os, zipfile, shutil, hashlib
+
+          src = Path('src')
+          gh = Path('gh')
+
+          def zip_dir(source_dir, dest_zip):
+              source_dir = Path(source_dir)
+              dest_zip = Path(dest_zip)
+              dest_zip.parent.mkdir(parents=True, exist_ok=True)
+              with zipfile.ZipFile(dest_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
+                  for path in source_dir.rglob('*'):
+                      if path.is_file():
+                          zf.write(path, path.relative_to(source_dir.parent))
+
+          repo_addon = src / 'repository' / 'repository.kodipovilai'
+          subs_addon = src / 'addons' / 'service.subtitles.kodipovilai'
+          wizard_addon = src / 'wizard' / 'source' / 'plugin.program.kodipovilwizard'
+
+          zip_dir(repo_addon, gh / 'repo' / 'repository.kodipovilai-1.0.0.zip')
+          zip_dir(repo_addon, gh / 'repo' / 'zips' / 'repository.kodipovilai' / 'repository.kodipovilai-1.0.0.zip')
+          zip_dir(subs_addon, gh / 'repo' / 'zips' / 'service.subtitles.kodipovilai' / 'service.subtitles.kodipovilai-0.2.291.zip')
+          zip_dir(wizard_addon, gh / 'wizard' / 'plugin.program.kodipovilwizard-0.1.30.zip')
+          shutil.copy2(gh / 'wizard' / 'plugin.program.kodipovilwizard-0.1.30.zip', gh / 'wizard' / 'plugin.program.kodipovilwizard-latest.zip')
+
+          addons_xml = gh / 'repo' / 'addons.xml'
+          (gh / 'repo' / 'addons.xml.md5').write_text(hashlib.md5(addons_xml.read_bytes()).hexdigest())
+          PY
+
           mkdir -p gh/downloads
           gh release download --repo "$REPO_SLUG" \
             --pattern "Kodi-SH-64bit.apk" \
             --pattern "Kodi-SH-32bit.apk" \
             --dir gh/downloads --clobber \
             || echo "No release APK assets yet; skipping APK publish."
+
           touch gh/.nojekyll
           cd gh
           git add -A
@@ -86,4 +97,4 @@ jobs:
           fi
           SHORT_SHA="$(echo "$PUSHED_SHA" | cut -c1-7)"
           git commit -q -m "Publish main@${SHORT_SHA}"
-          git push "$REMOTE" gh-pages
+          git push origin gh-pages
