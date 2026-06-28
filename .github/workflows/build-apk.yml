@@ -26,6 +26,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  actions: write
 
 env:
   OLD_PACKAGE_ID: 'org.xbmc.kodi'
@@ -34,7 +35,6 @@ env:
   WIZARD_ID: 'plugin.program.kodipovilwizard'
   WIZARD_VERSION: '0.1.30'
   BUILD_ASSET_NAME: 'Kodi-SH-FENtastic-test-0.1.101.zip'
-  QUICKFIX_ASSET_NAME: 'Kodi-SH-FENtastic-quickfix-0.1.325.zip'
 
 jobs:
   build-and-release:
@@ -219,7 +219,6 @@ jobs:
           cp "$RUNNER_TEMP/release-inputs/wizard.zip" "../out/plugin.program.kodipovilwizard-${WIZARD_VERSION}.zip"
           cp "$RUNNER_TEMP/release-inputs/wizard.zip" "../out/plugin.program.kodipovilwizard-latest.zip"
           cp "$RUNNER_TEMP/release-inputs/build.zip" "../out/${BUILD_ASSET_NAME}"
-          cp "$RUNNER_TEMP/release-inputs/build.zip" "../out/${QUICKFIX_ASSET_NAME}"
           gh release create "$TAG" \
             --title "Kodi-SH ${VERSION}" \
             --notes "$NOTES" \
@@ -229,8 +228,10 @@ jobs:
             ../out/Kodi-SH-64bit.apk \
             ../out/plugin.program.kodipovilwizard-${WIZARD_VERSION}.zip \
             ../out/plugin.program.kodipovilwizard-latest.zip \
-            ../out/${BUILD_ASSET_NAME} \
-            ../out/${QUICKFIX_ASSET_NAME}
+            ../out/${BUILD_ASSET_NAME}
+          # Refresh gh-pages downloads even when the committed Kodi-core version
+          # pointer is unchanged, so /downloads/*.apk follows the new release.
+          gh workflow run deploy-pages.yml --ref main || echo "::warning::Could not dispatch Pages refresh; run Deploy GitHub Pages manually."
 
       - name: Update version pointer files on main
         env:

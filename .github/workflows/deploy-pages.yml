@@ -22,7 +22,6 @@ jobs:
       - name: Sync main tree to gh-pages
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          POOL_SECRET: ${{ secrets.POOL_SECRET }}
           REPO_SLUG: ${{ github.repository }}
           PUSHED_SHA: ${{ github.sha }}
         run: |
@@ -50,11 +49,12 @@ jobs:
           cd src
           PUBLISH_PATHS="$(git ls-tree --name-only HEAD | grep -vxE 'dist|\.github|\.secrets')"
           git archive HEAD -- $PUBLISH_PATHS | tar -x -C ../gh
-          if [ -z "${POOL_SECRET:-}" ]; then
-            echo "::error::POOL_SECRET secret is required to publish the subtitle add-on package with community-pool signing enabled."
-            exit 1
-          fi
-          POOL_SECRET="$POOL_SECRET" python3 tools/build_ai_subtitles_packages.py
+          # Build the subtitle package through the packaging script so the
+          # standalone zip is slim and reproducible. Do not inject POOL_SECRET
+          # into public zips; a shared public HMAC secret is not a security
+          # boundary. Pool endpoints stay disabled unless a future server auth
+          # model avoids shipping a write secret to clients.
+          python3 tools/build_ai_subtitles_packages.py
           cd ..
 
           python3 - <<'PY'
@@ -79,8 +79,12 @@ jobs:
 
           zip_dir(repo_addon, gh / 'repo' / 'repository.kodipovilai-1.0.0.zip')
           zip_dir(repo_addon, gh / 'repo' / 'zips' / 'repository.kodipovilai' / 'repository.kodipovilai-1.0.0.zip')
-          shutil.copy2(src / 'dist' / 'service.subtitles.kodipovilai-0.2.291.zip', gh / 'repo' / 'zips' / 'service.subtitles.kodipovilai' / 'service.subtitles.kodipovilai-0.2.291.zip')
-          shutil.copy2(src / 'dist' / 'service.subtitles.kodipovilai-latest.zip', gh / 'repo' / 'zips' / 'service.subtitles.kodipovilai' / 'service.subtitles.kodipovilai-latest.zip')
+          import xml.etree.ElementTree as ET
+          addon_version = ET.parse(src / 'addons' / 'service.subtitles.kodipovilai' / 'addon.xml').getroot().attrib['version']
+          subs_dir = gh / 'repo' / 'zips' / 'service.subtitles.kodipovilai'
+          subs_dir.mkdir(parents=True, exist_ok=True)
+          shutil.copy2(src / 'dist' / f'service.subtitles.kodipovilai-{addon_version}.zip', subs_dir / f'service.subtitles.kodipovilai-{addon_version}.zip')
+          shutil.copy2(src / 'dist' / 'service.subtitles.kodipovilai-latest.zip', subs_dir / 'service.subtitles.kodipovilai-latest.zip')
           zip_dir(wizard_addon, gh / 'wizard' / 'plugin.program.kodipovilwizard-0.1.30.zip')
           shutil.copy2(gh / 'wizard' / 'plugin.program.kodipovilwizard-0.1.30.zip', gh / 'wizard' / 'plugin.program.kodipovilwizard-latest.zip')
 

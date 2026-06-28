@@ -64,9 +64,9 @@ own program folder and launches Kodi with `-p`, so its profile lives in
 
 - `Kodi-SH-<version>-32bit.apk` and `Kodi-SH-32bit.apk`
 - `Kodi-SH-<version>-64bit.apk` and `Kodi-SH-64bit.apk`
-- `Kodi-SH-Setup-<version>.exe` and `Kodi-SH-Setup.exe`
+Windows/webOS artifacts are not produced by the current Android-only workflow.
 
-The stable filenames let the download pages use `/releases/latest/download/<name>` without updating HTML per release.
+The stable APK filenames let the download pages use `/releases/latest/download/<name>` without updating HTML per release.
 
 ## Recovery from a lost keystore
 

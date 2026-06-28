@@ -30,6 +30,10 @@ import hmac as _hmac
 import hashlib as _hashlib
 
 
+def _pool_configured():
+    return bool(POOL_SECRET and POOL_SECRET != '__POOL_SECRET__')
+
+
 def _anon_id():
     """Stable anonymous per-install id (shared with telemetry)."""
     try:
@@ -56,6 +60,8 @@ def _addon_version():
 def sign_headers(method, path):
     """Return the request headers the Worker expects."""
     anon = _anon_id()
+    if not _pool_configured():
+        return {'x-pov-sig': '', 'x-pov-anon': anon, 'x-pov-v': _addon_version()}
     try:
         msg = (method.upper() + '\n' + path + '\n' + anon).encode('utf-8')
         sig = _hmac.new(POOL_SECRET.encode('utf-8'), msg,
@@ -85,12 +91,12 @@ _BULK_THROTTLE_SEC = 6.0
 
 def use_enabled():
     """Pull from the pool before translating? (default off)"""
-    return kodi_utils.get_bool('pool_use', False)
+    return _pool_configured() and kodi_utils.get_bool('pool_use', False)
 
 
 def share_enabled():
     """Push fresh translations to the pool? (default off)"""
-    return kodi_utils.get_bool('pool_share', False)
+    return _pool_configured() and kodi_utils.get_bool('pool_share', False)
 
 
 def _is_token_like(s):

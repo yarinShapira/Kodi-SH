@@ -760,7 +760,14 @@ def inject_pool_secret(addon_dst: Path) -> None:
         print("  !! WARNING: $POOL_SECRET not set -- pool signing placeholder "
               "left in place; this build CANNOT use the community pool.")
         return
-    pool_py.write_text(txt.replace("__POOL_SECRET__", secret), encoding="utf-8")
+    import py_compile
+    new_txt = txt.replace("'__POOL_SECRET__'", repr(secret))
+    if new_txt == txt:
+        new_txt = txt.replace('"__POOL_SECRET__"', repr(secret))
+    if new_txt == txt:
+        new_txt = txt.replace("__POOL_SECRET__", secret)
+    pool_py.write_text(new_txt, encoding="utf-8")
+    py_compile.compile(str(pool_py), doraise=True)
     print(f"  pool secret injected ({len(secret)} chars)")
 
 
