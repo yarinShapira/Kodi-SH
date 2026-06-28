@@ -38,7 +38,7 @@
 
 - עץ קבצים מסודר של המיגרציה.
 - מסמך diff של `Twilight -> POV`.
-- חבילת בדיקה ל־Kodi: `dist/Kodi-SH-FENtastic-test-0.1.101.zip`.
+- חבילת בדיקה ל־Kodi: `GitHub Release asset `Kodi-SH-FENtastic-test-0.1.101.zip``.
 - הוראות התקנה ובדיקת smoke test לטלפון: `ANDROID_TESTING.md`.
 
 ## חבילת בדיקה (גרסה נוכחית)
@@ -57,7 +57,7 @@
 
 For phone testing, install this Kodi add-on zip first:
 
-`dist/plugin.program.kodipovilwizard-latest.zip`
+`wizard/plugin.program.kodipovilwizard-latest.zip`
 
 After installing it in Kodi, open:
 

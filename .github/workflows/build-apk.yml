@@ -33,6 +33,8 @@ env:
   APP_NAME: 'Kodi-SH'
   WIZARD_ID: 'plugin.program.kodipovilwizard'
   WIZARD_VERSION: '0.1.30'
+  BUILD_ASSET_NAME: 'Kodi-SH-FENtastic-test-0.1.101.zip'
+  QUICKFIX_ASSET_NAME: 'Kodi-SH-FENtastic-quickfix-0.1.325.zip'
 
 jobs:
   build-and-release:
@@ -211,11 +213,13 @@ jobs:
           fi
           NOTES=$(printf '%s\n%s' \
             "Built automatically by .github/workflows/build-apk.yml." \
-            "Android APK: separate package id '${PACKAGE_ID}', rebranded label 'Kodi-SH', wizard pre-bundled in assets/; the full build is downloaded by the wizard on first launch.")
+            "Android APK: separate package id '${PACKAGE_ID}', rebranded label 'Kodi-SH', wizard pre-bundled in assets/; advertised full-build assets are attached to this release.")
           cp "../out/Kodi-SH-${VERSION}-32bit.apk" "../out/Kodi-SH-32bit.apk"
           cp "../out/Kodi-SH-${VERSION}-64bit.apk" "../out/Kodi-SH-64bit.apk"
           cp "$RUNNER_TEMP/release-inputs/wizard.zip" "../out/plugin.program.kodipovilwizard-${WIZARD_VERSION}.zip"
           cp "$RUNNER_TEMP/release-inputs/wizard.zip" "../out/plugin.program.kodipovilwizard-latest.zip"
+          cp "$RUNNER_TEMP/release-inputs/build.zip" "../out/${BUILD_ASSET_NAME}"
+          cp "$RUNNER_TEMP/release-inputs/build.zip" "../out/${QUICKFIX_ASSET_NAME}"
           gh release create "$TAG" \
             --title "Kodi-SH ${VERSION}" \
             --notes "$NOTES" \
@@ -224,7 +228,9 @@ jobs:
             ../out/Kodi-SH-32bit.apk \
             ../out/Kodi-SH-64bit.apk \
             ../out/plugin.program.kodipovilwizard-${WIZARD_VERSION}.zip \
-            ../out/plugin.program.kodipovilwizard-latest.zip
+            ../out/plugin.program.kodipovilwizard-latest.zip \
+            ../out/${BUILD_ASSET_NAME} \
+            ../out/${QUICKFIX_ASSET_NAME}
 
       - name: Update version pointer files on main
         env:
@@ -233,9 +239,10 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="${{ github.event.inputs.version }}"
+          KODI_VERSION="${{ github.event.inputs.kodi_version }}"
           TAG="v${VERSION}"
           mkdir -p wizard/assets/kodi_version_auto_update/apk
-          echo "$VERSION" > wizard/assets/kodi_version_auto_update/apk/latest_apk_version.txt
+          echo "$KODI_VERSION" > wizard/assets/kodi_version_auto_update/apk/latest_apk_version.txt
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
           git add wizard/assets/kodi_version_auto_update/apk/latest_apk_version.txt

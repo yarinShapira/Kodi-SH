@@ -1188,10 +1188,15 @@ def kodi_apk_update_check(kodi_version_update_check_manual, os_type_label):
                                yeslabel='[B][COLOR springgreen]עדכן[/COLOR][/B]')
                                
             if yes_pressed:
-                yes_pressed = dialog.yesno(f"{CONFIG.ADDONTITLE} ({os_type_label})",
-                                   f'[B]משתמש בסטרימר Android TV? בחר [COLOR orange]Downloader[/COLOR].\n\nמשתמש בסטרימר/מכשיר אנדרואיד רגיל? בחר [COLOR yellow]Google Chrome[/COLOR].[/B]',
-                                   nolabel='[B][COLOR orange]Downloader[/COLOR][/B]',
-                                   yeslabel='[B][COLOR yellow]Google Chrome[/COLOR][/B]') 
+                if CONFIG.APK_DOWNLOADER_CODE:
+                    yes_pressed = dialog.yesno(f"{CONFIG.ADDONTITLE} ({os_type_label})",
+                                       f'[B]משתמש בסטרימר Android TV? בחר [COLOR orange]Downloader[/COLOR].\n\nמשתמש בסטרימר/מכשיר אנדרואיד רגיל? בחר [COLOR yellow]Google Chrome[/COLOR].[/B]',
+                                       nolabel='[B][COLOR orange]Downloader[/COLOR][/B]',
+                                       yeslabel='[B][COLOR yellow]Google Chrome[/COLOR][/B]')
+                else:
+                    # No Downloader short code is configured for Kodi-SH yet;
+                    # avoid showing an unusable blank-code path.
+                    yes_pressed = True
                                    
                 if yes_pressed:
                     google_chrome_app_packge_id = 'com.android.chrome'
