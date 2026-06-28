@@ -240,10 +240,12 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="${{ github.event.inputs.version }}"
-          KODI_VERSION="${{ github.event.inputs.kodi_version }}"
           TAG="v${VERSION}"
           mkdir -p wizard/assets/kodi_version_auto_update/apk
-          echo "$KODI_VERSION" > wizard/assets/kodi_version_auto_update/apk/latest_apk_version.txt
+          # Keep the in-app update pointer tied to the published APK release
+          # label, not only the upstream Kodi core version. That way APK-only
+          # fixes with a new version/versionCode still prompt installed clients.
+          echo "$VERSION" > wizard/assets/kodi_version_auto_update/apk/latest_apk_version.txt
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
           git add wizard/assets/kodi_version_auto_update/apk/latest_apk_version.txt

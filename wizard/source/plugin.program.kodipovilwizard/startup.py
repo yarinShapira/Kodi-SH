@@ -144,13 +144,15 @@ def auto_quick_update():
         elif int(note_id) > int(CONFIG.QUICK_UPDATE_NOTEID):
             logging.log('[QUICK-UPDATE] Starting quick update number {0}'
                         .format(note_id))
-            CONFIG.set_setting('quick_update_noteid', note_id)
-            CONFIG.set_setting('quick_update_notedismiss', 'false')
             from resources.libs.wizard import Wizard
             quick_update_status = Wizard().quick_update(name=CONFIG.BUILDNAME, auto_quick_update="true")
             if not quick_update_status:
-                CONFIG.set_setting('quick_update_notedismiss', 'true')
+                # Do not persist/dismiss the newer id when the feed has quick
+                # updates disabled (gui="http://") or the download fails; the
+                # same id should be retried once a real quickfix asset exists.
                 return
+            CONFIG.set_setting('quick_update_noteid', note_id)
+            CONFIG.set_setting('quick_update_notedismiss', 'false')
             Wizard().force_close_kodi_in_5_seconds(dialog_header="עדכון מהיר הסתיים בהצלחה")
 
 

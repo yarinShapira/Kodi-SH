@@ -1178,6 +1178,9 @@ def kodi_apk_update_check(kodi_version_update_check_manual, os_type_label):
     try:
 
         LATEST_APK_VERSION_TEXT_FILE = tools.open_url(CONFIG.LATEST_APK_VERSION_TEXT_FILE).text.strip()
+        # Kodi-SH publishes release labels such as 21.3-kodish.2 here. Compare
+        # their numeric components to Kodi's runtime version so APK-only fixes
+        # (same upstream Kodi core, newer release label/versionCode) can prompt.
         is_new_version_available = _is_newer_version(LATEST_APK_VERSION_TEXT_FILE, CONFIG.KODIV)
         
         if is_new_version_available:
@@ -1211,16 +1214,12 @@ def kodi_apk_update_check(kodi_version_update_check_manual, os_type_label):
                         return
                         
                     else:
-                        yes_pressed = dialog.yesno(f"{CONFIG.ADDONTITLE} ({os_type_label})",
-                                           '[B]אפליקציית [COLOR yellow]Google Chrome[/COLOR] אינה מותקנת.[/B]',
-                                           nolabel='[B]ביטול[/B]',
-                                           yeslabel='[B]הורד מהחנות[/B]')
-                        if yes_pressed:
-                            # Open Google Play Store on Google Chrome app.
-                            open_google_play_store_on_specific_app(google_chrome_app_packge_id)
-                            return
-                        else:
-                            return
+                        # Android TV / Fire TV often has no Chrome. When no
+                        # Downloader short code is configured, open the direct
+                        # APK page through Android's generic VIEW intent so any
+                        # installed browser/downloader can handle it.
+                        xbmc.executebuiltin(f'StartAndroidActivity("", "android.intent.action.VIEW", "", "{CONFIG.APK_DOWNLOAD_URL}")')
+                        return
                     
                 else:
                     downloader_app_packge_id = 'com.esaba.downloader'

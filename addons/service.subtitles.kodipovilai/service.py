@@ -2640,33 +2640,18 @@ def _maybe_default_fast_first_chunk():
 
 
 def _maybe_default_pool_on():
-    """One-shot: turn the community pool ON (both pull and share) for existing
-    users who are still on the old default-off. Gated by a marker so it fires
-    once per install; if the user later turns either toggle off manually we
-    don't re-enable on subsequent startups. New installs get it on via the
-    settings.xml defaults; this covers everyone who installed before the
-    default flip."""
+    """Deprecated no-op.
+
+    Public/privacy review decided the community pool must be explicit opt-in.
+    Keep the marker write so old installs do not repeatedly enter this retired
+    migration, but never flip pool_use or pool_share automatically.
+    """
     try:
         from resources.lib import kodi_utils
+        if kodi_utils.get_setting('_pool_default_on_v1', '') != '1':
+            kodi_utils.set_setting('_pool_default_on_v1', '1')
     except Exception:
-        return
-    try:
-        if kodi_utils.get_setting('_pool_default_on_v1', '') == '1':
-            return
-        # Only flip toggles still on the old default 'false'; leave an explicit
-        # choice (already 'true') alone.
-        for key in ('pool_use', 'pool_share'):
-            if kodi_utils.get_setting(key, 'false') == 'false':
-                kodi_utils.set_setting(key, 'true')
-        kodi_utils.set_setting('_pool_default_on_v1', '1')
-        kodi_utils.log('community pool enabled by default (migration v1)',
-                       level='INFO')
-    except Exception as e:
-        try:
-            kodi_utils.log('pool default-on migration failed: {0}'.format(e),
-                           level='WARNING')
-        except Exception:
-            pass
+        pass
 
 
 def _maybe_force_gender_ref_arabic():
@@ -2835,28 +2820,17 @@ def _maybe_default_remember_source():
 
 
 def _maybe_force_pool_share():
-    """One-shot rollout: turn community-pool SHARING on for EVERYONE, to grow the
-    shared Hebrew pool as fast as possible. With pool_share on, every human
-    Ktuvit Hebrew sub for a played title is mirrored to the pool in the
-    background (the harvest), and AI translations are shared too -- so the pool
-    fills for all users. Force-enabled once via a fresh marker (overriding a
-    prior opt-out); a later MANUAL opt-out AFTER this run sticks. New installs
-    already default on via settings.xml. Build-edition only (the slim standalone
-    has its own service)."""
+    """Deprecated no-op.
+
+    Pool sharing must be opt-in, even for full-build packages with an injected
+    pool secret. Mark the retired rollout consumed without changing settings.
+    """
     try:
         from resources.lib import kodi_utils
-        if kodi_utils.get_setting('_pool_share_force_v1', '') == '1':
-            return
-        kodi_utils.set_setting('pool_share', 'true')
-        kodi_utils.set_setting('_pool_share_force_v1', '1')
-        kodi_utils.log('pool_share force-enabled for everyone (rollout v1)',
-                       level='INFO')
-    except Exception as e:
-        try:
-            kodi_utils.log('pool_share force migration failed: {0}'.format(e),
-                           level='WARNING')
-        except Exception:
-            pass
+        if kodi_utils.get_setting('_pool_share_force_v1', '') != '1':
+            kodi_utils.set_setting('_pool_share_force_v1', '1')
+    except Exception:
+        pass
 
 
 def _maybe_default_nox_poster_rating():
@@ -3302,9 +3276,8 @@ def main():
     # patcher runs, so the patcher sees it on and reloads POV this session.
     _maybe_default_remember_source()
 
-    # Grow the shared Hebrew pool: force community-pool sharing ON for everyone
-    # once (a later manual opt-out sticks). Must run before the harvest/drainer
-    # below so it mirrors Ktuvit subs to the pool already this session.
+    # Retired privacy migration: keep the marker consumed, but never enable
+    # community-pool sharing automatically. Users must opt in explicitly.
     _maybe_force_pool_share()
 
     # ROLLOUT: switch everyone to MoranSubs's built-in engine (one-shot, marker-
@@ -3534,9 +3507,8 @@ def main():
     # existing users on the old default. Marker-gated.
     _maybe_default_fast_first_chunk()
 
-    # One-shot: turn the community pool ON (pull + share) for existing users
-    # still on the old default-off. New installs get it via settings.xml
-    # defaults. Marker-gated so a later manual opt-out sticks.
+    # Retired privacy migration: keep the old marker consumed, but never enable
+    # community-pool pull/share automatically. Users must opt in explicitly.
     _maybe_default_pool_on()
 
     # One-shot: turn the Arabic-gender-reference setting ON for everyone (it

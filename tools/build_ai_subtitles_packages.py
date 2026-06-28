@@ -597,24 +597,32 @@ def slim_default_text(text: str) -> str:
     search/download and AI settings actions, but it must not expose build
     shortcuts such as POV service thresholds or TorBox home-tile status.
     """
-    text = re.sub(
-        r"\ndef _handle_open_pov_settings\(_params\):.*?(?=\ndef main\(\):)",
-        "\n",
-        text,
-        count=1,
-        flags=re.S,
-    )
-    text = re.sub(
-        r"\n        elif action == 'open_pov_settings':\n"
-        r"            _handle_open_pov_settings\(params\)"
-        r"\n        elif action == 'debrid_notice_settings':\n"
-        r"            _handle_debrid_notice_settings\(params\)"
-        r"\n        elif action == 'torbox_status':\n"
-        r"            _handle_torbox_status\(params\)",
-        "",
-        text,
-        count=1,
-    )
+    # Remove only build-only POV/TorBox handlers. Keep standalone handlers that
+    # follow them (Telegram, he_avail, engine_test, choose_subs) because the
+    # settings XML still routes to those actions.
+    for handler in (
+        '_handle_open_pov_settings',
+        '_handle_torbox_status',
+        '_handle_debrid_notice_settings',
+    ):
+        text = re.sub(
+            r"\ndef {0}\(_params\):.*?(?=\ndef _handle_|\ndef main\(\):)".format(handler),
+            "\n",
+            text,
+            count=1,
+            flags=re.S,
+        )
+    for action, handler in (
+        ('open_pov_settings', '_handle_open_pov_settings'),
+        ('debrid_notice_settings', '_handle_debrid_notice_settings'),
+        ('torbox_status', '_handle_torbox_status'),
+    ):
+        text = re.sub(
+            r"\n        elif action == '{0}':\n            {1}\(params\)".format(action, handler),
+            "",
+            text,
+            count=1,
+        )
     text = text.replace(
         "anywhere, e.g. a Wizard button or a remote shortcut.",
         "anywhere, e.g. a remote shortcut.",

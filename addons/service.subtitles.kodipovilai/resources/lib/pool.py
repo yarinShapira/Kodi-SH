@@ -385,6 +385,8 @@ def report_embedded(info):
     try:
         if kodi_utils.get_setting('he_embedded_report', 'true') == 'false':
             return
+        if not _pool_configured():
+            return
         if _urlreq is None:
             return
         p = _params(info)
@@ -435,6 +437,8 @@ def report_ktuvit(info, names):
     by the background warm only when the registry was missing/stale (so Ktuvit
     is queried ~once per title globally). Non-blocking; no-op on missing id."""
     try:
+        if not _pool_configured():
+            return
         if _urlreq is None:
             return
         p = _params(info)

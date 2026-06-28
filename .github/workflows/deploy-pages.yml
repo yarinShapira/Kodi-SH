@@ -80,7 +80,9 @@ jobs:
           zip_dir(repo_addon, gh / 'repo' / 'repository.kodipovilai-1.0.0.zip')
           zip_dir(repo_addon, gh / 'repo' / 'zips' / 'repository.kodipovilai' / 'repository.kodipovilai-1.0.0.zip')
           import xml.etree.ElementTree as ET
-          addon_version = ET.parse(src / 'addons' / 'service.subtitles.kodipovilai' / 'addon.xml').getroot().attrib['version']
+          addon_tree = ET.parse(subs_addon / 'addon.xml')
+          addon_root = addon_tree.getroot()
+          addon_version = addon_root.attrib['version']
           subs_dir = gh / 'repo' / 'zips' / 'service.subtitles.kodipovilai'
           subs_dir.mkdir(parents=True, exist_ok=True)
           shutil.copy2(src / 'dist' / f'service.subtitles.kodipovilai-{addon_version}.zip', subs_dir / f'service.subtitles.kodipovilai-{addon_version}.zip')
@@ -88,7 +90,17 @@ jobs:
           zip_dir(wizard_addon, gh / 'wizard' / 'plugin.program.kodipovilwizard-0.1.30.zip')
           shutil.copy2(gh / 'wizard' / 'plugin.program.kodipovilwizard-0.1.30.zip', gh / 'wizard' / 'plugin.program.kodipovilwizard-latest.zip')
 
+          # Regenerate repository metadata from the current add-on manifests so
+          # Kodi sees future service.subtitles.kodipovilai version bumps on
+          # Pages without a manual repo/addons.xml edit.
+          repo_tree = ET.parse(src / 'repo' / 'addons.xml')
+          repo_root = repo_tree.getroot()
+          for old in list(repo_root.findall("addon[@id='service.subtitles.kodipovilai']")):
+              repo_root.remove(old)
+          repo_root.append(addon_root)
           addons_xml = gh / 'repo' / 'addons.xml'
+          ET.indent(repo_tree, space='  ')
+          repo_tree.write(addons_xml, encoding='UTF-8', xml_declaration=True)
           (gh / 'repo' / 'addons.xml.md5').write_text(hashlib.md5(addons_xml.read_bytes()).hexdigest())
           PY
 
