@@ -1,0 +1,522 @@
+# Hebrew-subtitle match score for POV's source-results window.
+#
+# Shows, under each source (before you pick it), how well an available Hebrew
+# subtitle's release name matches that source's release -- i.e. how likely a
+# ready Hebrew sub will sync to it. Computed against the community pool (AI +
+# manual uploads). Cosmetic/advisory only.
+#
+# Self-contained on purpose: POV imports this by path from its own interpreter
+# (like source_capture), so NO relative/package imports -- we do the pool
+# /lookup over plain urllib here instead of importing pool.py. Every entry
+# point is fully guarded; any failure yields an empty prefix so POV's source
+# list is never affected.
+
+import os
+import re
+import time
+import json
+import base64
+
+try:
+    import urllib.request as _req
+    import urllib.parse as _parse
+except Exception:
+    _req = None
+    _parse = None
+
+POOL_URL = 'https://povil-subs-pool.moran200333.workers.dev'
+_UA = 'KodiPOVIL-AISubs/he-match'
+_ADDON_ID = 'service.subtitles.kodipovilai'
+
+_TIMEOUT = 2.5
+# Hard cap for the ONE synchronous pool lookup release_names() does on a cache
+# miss (first entry to a title). Keeps the source window from ever stalling
+# more than ~1s, while still showing the shared % on the first entry.
+_FIRST_ENTRY_TIMEOUT = 1.2
+
+# Engine (OpenSubtitles) availability is filled by a background RunScript into a
+# shared cache file; we read it cheaply on every call so the badge fills in on
+# the next source-window open without ever blocking POV.
+_ENGINE_CACHE_FILE = (
+    'special://profile/addon_data/service.subtitles.kodipovilai/'
+    'he_avail_cache.json')
+_ENGINE_TTL = 7 * 24 * 3600.0   # 7 days; used once HUMAN Hebrew has been found
+# When NO human Hebrew exists yet (likely brand-new content), re-warm MUCH more
+# often so a sub that appears within hours shows up fast for everyone -- new
+# releases get human Hebrew within ~24h, and a 7-day cache would hide it.
+_AVAIL_TTL_NONE = 8 * 3600.0    # 8 hours
+_FIRED = {}            # media_key -> last warm-fire ts (throttle re-fires)
+_FIRE_RETRY = 120.0    # re-fire a warm at most once every 2 min per title
+
+
+def _enabled():
+    try:
+        import xbmcaddon
+        v = (xbmcaddon.Addon(_ADDON_ID).getSetting('show_subtitle_match')
+             or '').strip().lower()
+        return v != 'false'   # default ON when unset
+    except Exception:
+        return True
+
+
+def _media_params(meta):
+    """Pull {tmdb,imdb,type,season,episode} out of POV's meta dict, defensively
+    (only imdb_id/media_type/season/episode are guaranteed present)."""
+    if not meta:
+        return None
+    g = meta.get
+    imdb = str(g('imdb_id') or g('imdb') or '').strip()
+    tmdb = str(g('tmdb_id') or g('tmdb') or '').strip()
+    if not (imdb or tmdb):
+        return None
+    season = str(g('season') or g('custom_season') or '0').strip() or '0'
+    episode = str(g('episode') or g('custom_episode') or '0').strip() or '0'
+    mt = str(g('media_type') or '').strip().lower()
+    is_ep = mt in ('episode', 'tvshow', 'tv', 'season') or (
+        season not in ('', '0') and episode not in ('', '0'))
+    return {
+        'tmdb': tmdb, 'imdb': imdb,
+        'type': 'episode' if is_ep else 'movie',
+        'season': season if is_ep else '0',
+        'episode': episode if is_ep else '0',
+        'lang': 'he',
+    }
+
+
+def _media_key(p):
+    return '{0}:{1}:{2}:{3}:{4}'.format(
+        p['tmdb'] or p['imdb'], p['type'], p['season'], p['episode'], p['lang'])
+
+
+WIZDOM_API_URL = 'https://wizdom.xyz/api/search?action=by_id'
+
+
+def _pool_lookup(p, timeout=None):
+    """One /lookup call -> dict with the pool's Hebrew data for this media:
+        {'names': [...],          pool-contributed Hebrew release names
+         'embedded': [...],       releases flagged as carrying built-in Hebrew
+         'ktuvit': [...],         Hebrew release names cached from Ktuvit
+         'ktuvit_checked': <ts>}  when Ktuvit was last checked (0 = never)
+    All keyed by release name so they match across debrid providers. Networked.
+    `timeout` overrides the default (the source window uses a tight cap for its
+    one allowed synchronous first-entry call)."""
+    out = {'names': [], 'embedded': [], 'ktuvit': [],
+           'ktuvit_checked': 0.0, 'ktuvit_changed': 0.0}
+    try:
+        q = _parse.urlencode({k: v for k, v in p.items() if v})
+        req = _req.Request(POOL_URL + '/lookup?' + q,
+                           headers={'user-agent': _UA})
+        raw = _req.urlopen(req, timeout=(timeout or _TIMEOUT)).read().decode('utf-8')
+        data = json.loads(raw)
+        if data.get('ok'):
+            # Only HUMAN Hebrew counts as "there's a translation" here -- an AI
+            # translation (kind='ai') can be generated for any source on demand,
+            # so it must NOT make us treat a title as already-having-Hebrew (that
+            # would stop us looking for real human subs on new content).
+            out['names'] = [(_v.get('release') or '').strip()
+                            for _v in (data.get('variants') or [])
+                            if (_v.get('release') or '').strip()
+                            and (_v.get('kind') or 'ai') != 'ai']
+            out['embedded'] = [(_r or '').strip()
+                               for _r in (data.get('embedded') or [])
+                               if (_r or '').strip()]
+            out['ktuvit'] = [(_r or '').strip()
+                             for _r in (data.get('ktuvit') or [])
+                             if (_r or '').strip()]
+            try:
+                out['ktuvit_checked'] = float(data.get('ktuvit_checked') or 0)
+            except (TypeError, ValueError):
+                out['ktuvit_checked'] = 0.0
+            try:
+                out['ktuvit_changed'] = float(data.get('ktuvit_changed') or 0)
+            except (TypeError, ValueError):
+                out['ktuvit_changed'] = 0.0
+    except Exception:
+        pass
+    return out
+
+
+
+
+def _wizdom_release_names(p):
+    """Hebrew release names from Wizdom's open API (no key, covers most
+    content) -- so the source-screen % works even for titles that aren't in
+    the community pool yet. Fully guarded."""
+    try:
+        imdb = (p.get('imdb') or '').strip()
+        if not imdb.startswith('tt'):
+            return []
+        params = {'imdb': imdb}
+        season = (p.get('season') or '').strip()
+        episode = (p.get('episode') or '').strip()
+        if p.get('type') == 'tv' or (season not in ('', '0')
+                                     and episode not in ('', '0')):
+            try:
+                params['season'] = str(int(season or 0)).zfill(2)
+                params['episode'] = str(int(episode or 0)).zfill(2)
+            except Exception:
+                pass
+        req = _req.Request(
+            WIZDOM_API_URL + '&' + _parse.urlencode(params),
+            headers={'user-agent': _UA})
+        raw = _req.urlopen(req, timeout=_TIMEOUT).read().decode('utf-8')
+        data = json.loads(raw)
+        out = []
+        for item in (data or []):
+            v = (item.get('versioname') or '').strip()
+            if v:
+                out.append(v)
+        return out
+    except Exception:
+        return []
+
+
+def _engine_cache_path():
+    try:
+        import xbmcvfs
+        return xbmcvfs.translatePath(_ENGINE_CACHE_FILE)
+    except Exception:
+        return ''
+
+
+def _cache_entry(key):
+    """The shared he_avail cache entry for this media, or None when missing /
+    stale. The background warm writes {ts, names, embedded}; this is a pure file
+    read that NEVER networks (it runs inside POV's source-window build)."""
+    try:
+        path = _engine_cache_path()
+        if not path or not os.path.isfile(path):
+            return None
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f) or {}
+        ent = data.get(key)
+        if not ent:
+            return None
+        # The warm picks the re-warm interval per title (short while the title is
+        # still gaining Hebrew / has none yet, long once it's stable). Fall back
+        # to the names-based rule for entries written before this field existed.
+        try:
+            ttl = float(ent.get('ttl') or 0)
+        except (TypeError, ValueError):
+            ttl = 0.0
+        if ttl <= 0:
+            ttl = _ENGINE_TTL if (ent.get('names')) else _AVAIL_TTL_NONE
+        if (time.time() - float(ent.get('ts', 0))) > ttl:
+            return None
+        return ent
+    except Exception:
+        return None
+
+
+def _cached_names(key):
+    """All available Hebrew release names from the warm cache (pool + Wizdom +
+    OpenSubtitles + Ktuvit-fallback), or None when not warmed / stale."""
+    ent = _cache_entry(key)
+    if ent is None:
+        return None
+    return [n for n in (ent.get('names') or []) if n]
+
+
+def _cached_embedded(key):
+    """Release names flagged as carrying a built-in Hebrew track (from the warm
+    cache). [] when none / not warmed."""
+    ent = _cache_entry(key)
+    if ent is None:
+        return []
+    return [n for n in (ent.get('embedded') or []) if n]
+
+
+def _meta_str(meta, keys):
+    for k in keys:
+        v = meta.get(k)
+        if isinstance(v, str) and v.strip():
+            return v.strip()
+    return ''
+
+
+def _fire_engine_warm(key, p, meta):
+    """Fire-and-forget RunScript so MoranSubs runs OpenSubtitles for this title in its
+    own context and writes the result to the shared cache. Throttled per title
+    so reopening the source window doesn't spam it. Non-blocking."""
+    try:
+        import xbmc
+        now = time.time()
+        if (now - _FIRED.get(key, 0)) < _FIRE_RETRY:
+            return
+        _FIRED[key] = now
+        payload = {
+            'mk': key,
+            'imdb': p.get('imdb', ''),
+            'tmdb': p.get('tmdb', ''),
+            'type': p.get('type', 'movie'),
+            'season': p.get('season', '0'),
+            'episode': p.get('episode', '0'),
+            'title': _meta_str(meta, ('title', 'originaltitle',
+                                      'OriginalTitle', 'label', 'name')),
+            'tvshow': _meta_str(meta, ('tvshowtitle', 'showtitle',
+                                       'TVShowTitle')),
+            'year': str((meta.get('year') if meta else '') or ''),
+        }
+        blob = base64.b64encode(
+            json.dumps(payload).encode('utf-8')).decode('ascii')
+        xbmc.executebuiltin(
+            'RunScript(service.subtitles.kodipovilai,'
+            'action=he_avail,data={0})'.format(blob))
+    except Exception:
+        pass
+
+
+def availability(p):
+    """NETWORKED -- runs ONLY in the background warm (MoranSubs's own process),
+    never in POV's source window. Returns a dict:
+        {'names': [...],          pool + Wizdom Hebrew release names
+         'embedded': [...],       releases flagged as carrying built-in Hebrew
+         'ktuvit': [...],         Hebrew release names already cached on the pool
+         'ktuvit_checked': <ts>}  when the pool last checked Ktuvit (0 = never)
+    The warm adds OpenSubtitles on top, decides whether to refresh Ktuvit (only
+    when the shared registry is missing/stale), and writes the merged result to
+    the local speed cache."""
+    pl = {}
+    try:
+        pl = _pool_lookup(p)
+    except Exception:
+        pl = {}
+    try:
+        wiz = _wizdom_release_names(p)
+    except Exception:
+        wiz = []
+    names, seen = [], set()
+    for rel in list(pl.get('names') or []) + list(wiz):
+        low = (rel or '').strip().lower()
+        if low and low not in seen:
+            seen.add(low)
+            names.append(rel)
+    return {
+        'names': names,
+        'embedded': list(pl.get('embedded') or []),
+        'ktuvit': list(pl.get('ktuvit') or []),
+        'ktuvit_checked': pl.get('ktuvit_checked') or 0.0,
+        'ktuvit_changed': pl.get('ktuvit_changed') or 0.0,
+    }
+
+
+def _seed_from_pool(key, pl):
+    """Write the shared-pool result of the one-shot first-entry lookup into the
+    local cache (names = pool-human + Ktuvit-registry, plus embedded flags), with
+    a short TTL so the full background warm still refreshes it with Wizdom/OS
+    shortly after. So the badge shows the SHARED data on the very first entry --
+    on every device -- instead of only after that device's own warm."""
+    try:
+        names, seen = [], set()
+        for rel in list(pl.get('names') or []) + list(pl.get('ktuvit') or []):
+            low = (rel or '').strip().lower()
+            if low and low not in seen:
+                seen.add(low)
+                names.append(rel)
+        embedded = [r for r in (pl.get('embedded') or []) if r]
+        path = _engine_cache_path()
+        if not path:
+            return names
+        data = {}
+        if os.path.isfile(path):
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    data = json.load(f) or {}
+            except Exception:
+                data = {}
+        data[key] = {'ts': time.time(), 'names': names,
+                     'embedded': embedded, 'ttl': _AVAIL_TTL_NONE}
+        if len(data) > 400:
+            data = dict(sorted(data.items(),
+                               key=lambda kv: kv[1].get('ts', 0),
+                               reverse=True)[:400])
+        try:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            tmp = path + '.stmp'
+            with open(tmp, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False)
+            os.replace(tmp, path)
+        except Exception:
+            pass
+        return names
+    except Exception:
+        return [n for n in (pl.get('names') or []) if n]
+
+
+def release_names(meta):
+    """Hebrew-subtitle release names available for this media. Normally a pure
+    cache read (the background warm fills pool + Wizdom + OpenSubtitles + Ktuvit
+    off the source list, so the old multi-second freeze is gone). On a cache
+    MISS we also do ONE quick, tightly-capped /lookup to the SHARED pool so the
+    badge shows the shared data on the FIRST entry -- on every device -- not just
+    after that device's own warm. The full warm still runs in the background to
+    add Wizdom/OS. [] when disabled / unknown."""
+    try:
+        if not _enabled():
+            return []
+        p = _media_params(meta)
+        if not p:
+            return []
+        key = _media_key(p)
+        names = _cached_names(key)
+        if names is not None:
+            return names
+        # Cache miss. Kick the full background warm (Wizdom/OS/Ktuvit-live)...
+        _fire_engine_warm(key, p, meta)
+        # ...and do ONE quick shared-pool lookup so the first entry isn't blank.
+        # Tight timeout so the source window can never stall more than ~1s.
+        try:
+            pl = _pool_lookup(p, timeout=_FIRST_ENTRY_TIMEOUT)
+            return _seed_from_pool(key, pl)
+        except Exception:
+            return []
+    except Exception:
+        return []
+
+
+def embedded_names(meta):
+    """Release names flagged (by the community) as carrying a built-in Hebrew
+    track, for THIS media. Pure cache read; [] when none / not warmed yet."""
+    try:
+        if not _enabled():
+            return []
+        p = _media_params(meta)
+        if not p:
+            return []
+        return _cached_embedded(_media_key(p))
+    except Exception:
+        return []
+
+
+def merge_names(meta, names):
+    """Write-through: UNION freshly-found Hebrew release names into the local
+    availability cache. Called by the live search (auto-on-play / the subtitle
+    picker) so the source-screen badge reflects what was ACTUALLY found, instead
+    of lagging behind a possibly-staler background warm. This is what fixes "the
+    picker shows a 33% Ktuvit sub but the poster badge says 25%": the moment the
+    search sees that sub, its release is written here, so the badge picks it up.
+    Union-only, so it never drops what the warm already found. Safe + atomic."""
+    try:
+        if not _enabled():
+            return
+        p = _media_params(meta)
+        if not p:
+            return
+        clean = [(_n or '').strip() for _n in (names or []) if (_n or '').strip()]
+        if not clean:
+            return
+        key = _media_key(p)
+        path = _engine_cache_path()
+        if not path:
+            return
+        data = {}
+        if os.path.isfile(path):
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    data = json.load(f) or {}
+            except Exception:
+                data = {}
+        ent = data.get(key) or {}
+        existing = [n for n in (ent.get('names') or []) if n]
+        seen = set(n.lower() for n in existing)
+        merged = list(existing)
+        for n in clean:
+            low = n.lower()
+            if low not in seen:
+                seen.add(low)
+                merged.append(n)
+        if merged == existing:
+            return   # nothing new -- skip the write
+        ent['names'] = merged
+        ent['ts'] = time.time()
+        ent.setdefault('embedded', ent.get('embedded') or [])
+        # Keep it fresh-ish so the warm still refreshes from the network later.
+        if not ent.get('ttl'):
+            ent['ttl'] = _AVAIL_TTL_NONE
+        data[key] = ent
+        # Bound the file the same way the warm does (newest ~400 titles).
+        if len(data) > 400:
+            newest = sorted(data.items(),
+                            key=lambda kv: kv[1].get('ts', 0),
+                            reverse=True)[:400]
+            data = dict(newest)
+        try:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            tmp = path + '.wtmp'
+            with open(tmp, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False)
+            os.replace(tmp, path)
+        except Exception:
+            pass
+    except Exception:
+        pass
+
+
+def _tokens(s):
+    # MUST mirror translate._match_pct so the source-screen badge and the
+    # subtitle picker's % agree (the user saw 29% on the poster but 33% in the
+    # picker for the same source -- because the two used different algorithms).
+    s = re.sub(r'\.[a-z0-9]{2,4}$', '', s or '', flags=re.I)
+    for ch in '_ +/-':
+        s = s.replace(ch, '.')
+    return [x.lower() for x in s.split('.') if x]
+
+
+def _score(src_release, sub_release):
+    """Release-name match %, IDENTICAL to translate._match_pct (difflib token
+    sequence ratio) so the badge on the source screen and the % shown in the
+    subtitle picker are the same number for the same source + sub."""
+    import difflib
+    a = _tokens(src_release)
+    b = _tokens(sub_release)
+    if not a or not b:
+        return 0
+    try:
+        return int(round(difflib.SequenceMatcher(None, a, b).ratio() * 100))
+    except Exception:
+        return 0
+
+
+def best_score(src_release, names):
+    try:
+        if not names or not src_release:
+            return 0
+        return max((_score(src_release, n) for n in names), default=0)
+    except Exception:
+        return 0
+
+
+def label_prefix(src_release, names, embedded=None):
+    """A small coloured prefix for the START of the source's info line, or ''
+    when there's no usable match.
+
+    If this source's release matches one the community flagged as carrying a
+    BUILT-IN Hebrew track, it gets a distinct top-priority green badge
+    ('HEB BUILT-IN 101%') so everyone knows it already has Hebrew and is well
+    worth picking. Otherwise a normal 'HEB <NN>%' match badge: green high /
+    amber mid / red low.
+
+    Deliberately LTR-only (no Hebrew letters): a Hebrew word inline in the
+    mostly-English info line triggers bidi reordering (it jumps to the end) and
+    gets clipped when the line is full. An LTR badge stays at the start and
+    always shows, since the line truncates from the end."""
+    try:
+        # Embedded Hebrew = best possible: it's already in the file. We treat a
+        # high token overlap with a flagged release as a match (same scorer as
+        # the % badge, threshold 80) so it survives small release-name diffs.
+        if embedded and src_release:
+            emb_best = best_score(src_release, embedded)
+            if emb_best >= 80:
+                return '[COLOR FF2ECC71][B]HEB BUILT-IN 101%[/B][/COLOR] | '
+        best = best_score(src_release, names)
+        if best <= 0:
+            return ''
+        if best >= 66:
+            color = 'FF49C46A'
+        elif best >= 33:
+            color = 'FFE0B23C'
+        else:
+            color = 'FFD0594F'
+        return '[COLOR {0}][B]HEB {1}%[/B][/COLOR] | '.format(color, best)
+    except Exception:
+        return ''

@@ -1,0 +1,81 @@
+name: CI
+
+# Lightweight source checks. Deliberately avoids third-party actions so the
+# repository can keep a strict Actions allow policy.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-guardrails:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Install prerequisites
+        run: |
+          set -euo pipefail
+          sudo apt-get update -y
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            git \
+            python3-yaml
+
+      - name: Clone source
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_SLUG: ${{ github.repository }}
+          REF_NAME: ${{ github.head_ref || github.ref_name }}
+        run: |
+          set -euo pipefail
+          git -c http.https://github.com/.extraheader="AUTHORIZATION: bearer ${GH_TOKEN}" \
+            clone --depth=1 --branch "$REF_NAME" \
+            "https://github.com/${REPO_SLUG}.git" \
+            src
+
+      - name: Block generated binary artifacts in git
+        run: |
+          set -euo pipefail
+          cd src
+          if git ls-files | grep -E '\.(zip|apk|exe|msi|dmg|enc|keystore|jks)$'; then
+            echo "::error::Generated binary/signing artifacts must not be committed. Publish them as release assets."
+            exit 1
+          fi
+
+      - name: Compile Python sources
+        run: |
+          set -euo pipefail
+          cd src
+          python3 -m compileall -q \
+            addons/service.subtitles.kodipovilai \
+            .github/scripts \
+            tools
+
+      - name: Parse workflow YAML
+        run: |
+          set -euo pipefail
+          cd src
+          python3 - <<'PY'
+          import pathlib
+          import yaml
+
+          for path in sorted(pathlib.Path('.github/workflows').glob('*.yml')):
+              yaml.safe_load(path.read_text())
+              print('yaml ok', path)
+          PY
+
+      - name: Verify same-length Android package id
+        run: |
+          set -euo pipefail
+          cd src
+          python3 - <<'PY'
+          old = 'org.xbmc.kodi'
+          new = 'org.xbmc.kdsh'
+          print(f'{old} length={len(old)}')
+          print(f'{new} length={len(new)}')
+          assert len(old) == len(new), 'Kodi-SH package id must match old package length for binary patching'
+          PY

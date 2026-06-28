@@ -1,0 +1,27 @@
+upstream/
+work/
+zips/
+*.log
+
+# Python bytecode (e.g. from local py_compile verification runs)
+__pycache__/
+*.pyc
+
+# Generated build/release artifacts. Publish these via GitHub Releases,
+# not as source-controlled blobs.
+dist/
+*.zip
+*.apk
+*.exe
+*.msi
+*.dmg
+*.enc
+.secrets/
+*.keystore
+*.jks
+
+# Local build/decode scratch directories
+out/
+build/
+decoded/
+*.tmp
