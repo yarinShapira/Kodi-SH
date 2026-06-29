@@ -751,7 +751,8 @@ def build_one(name: str, standalone: bool) -> Path:
         tmp_path = Path(tmp)
         addon_dst = tmp_path / ADDON_ID
         copy_common(addon_dst, standalone=standalone)
-        inject_pool_secret(addon_dst)
+        if not standalone:
+            inject_pool_secret(addon_dst)
         make_zip(addon_dst, out)
     return out
 

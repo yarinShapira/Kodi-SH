@@ -126,6 +126,10 @@ def toggle_addon_updates():
     dialog = xbmcgui.Dialog()
     
     selected = dialog.select(CONFIG.ADDONTITLE, options)
+
+    if selected < 0:
+        logging.log('[Auto Update Wizard] Add-on update policy selection cancelled')
+        return
             
     logging.log_notify(CONFIG.ADDONTITLE, 'Updates changed to "{0}"'.format(options[selected]))
     xbmc.executeJSONRPC(set_query.format(selected))

@@ -256,6 +256,15 @@ def fresh_build_auto_install_if_needed():
             CONFIG.COLOR2, CONFIG.COLOR1, build_name
         )
         percent, errors, error = extract.all(lib, CONFIG.HOME, ignore=True, title=title)
+        if int(float(errors or 0)) > 0:
+            logging.log(
+                "[Fresh Build Auto Install] Extract completed with errors: {0}".format(error),
+                level=xbmc.LOGERROR,
+            )
+            CONFIG.set_setting('extract', percent)
+            CONFIG.set_setting('errors', errors)
+            return False
+
         if int(float(percent)) <= 0:
             logging.log(
                 "[Fresh Build Auto Install] Extract failed: {0}".format(error),
