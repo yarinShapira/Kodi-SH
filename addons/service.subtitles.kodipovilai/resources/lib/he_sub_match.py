@@ -106,7 +106,7 @@ def _pool_lookup(p, timeout=None):
         q = _parse.urlencode({k: v for k, v in p.items() if v})
         headers = {'user-agent': _UA}
         try:
-            from resources.lib import pool as _pool
+            import pool as _pool
             headers.update(_pool.sign_headers('GET', '/lookup'))
         except Exception:
             pass

@@ -229,6 +229,8 @@ def fresh_build_auto_install_if_needed():
 
     if CONFIG.get_setting('fresh_build_auto_install_done') == build_version:
         return False
+    if CONFIG.get_setting('fresh_build_auto_install_failed') == build_version:
+        return False
 
     try:
         from resources.libs.downloader import Downloader
@@ -263,14 +265,16 @@ def fresh_build_auto_install_if_needed():
             )
             CONFIG.set_setting('extract', percent)
             CONFIG.set_setting('errors', errors)
-            return False
+            CONFIG.set_setting('fresh_build_auto_install_failed', build_version)
+            return True
 
         if int(float(percent)) <= 0:
             logging.log(
                 "[Fresh Build Auto Install] Extract failed: {0}".format(error),
                 level=xbmc.LOGERROR,
             )
-            return False
+            CONFIG.set_setting('fresh_build_auto_install_failed', build_version)
+            return True
 
         installed = db.grab_addons(lib)
         db.addon_database(installed, 1, True)
@@ -285,6 +289,7 @@ def fresh_build_auto_install_if_needed():
         CONFIG.set_setting('extract', percent)
         CONFIG.set_setting('errors', errors)
         CONFIG.set_setting('fresh_build_auto_install_done', build_version)
+        CONFIG.clear_setting('fresh_build_auto_install_failed')
 
         CONFIG.BUILDNAME = build_name
         CONFIG.BUILDVERSION = build_version
@@ -594,7 +599,8 @@ if CONFIG.get_setting('buildname') and CONFIG.get_setting('build_skin_switch_not
 # installed, just not registered with the wizard) and populate the
 # settings the wizard's update gates check.
 try:
-    if not CONFIG.get_setting('buildname'):
+    if (not CONFIG.get_setting('buildname') and
+            not CONFIG.get_setting('fresh_build_auto_install_failed')):
         pov_addon_dir = os.path.join(CONFIG.ADDONS, 'plugin.video.pov')
         if os.path.exists(pov_addon_dir):
             CONFIG.set_setting('buildname', CONFIG.BUILDNAME_DEFAULT)
