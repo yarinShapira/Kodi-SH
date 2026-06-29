@@ -1004,7 +1004,29 @@ def _handle_bg_translate_picker(params):
                 '{1}'.format(phase, _e), level='WARNING')
 
     try:
-        translate.resolve(link, info, progressive_cb=on_phase)
+        resolved_path = translate.resolve(link, info, progressive_cb=on_phase)
+        # Some resolve paths can complete without emitting a chunk_ready/done
+        # callback that swaps Kodi to the Hebrew file (for example google mode,
+        # cache/already-Hebrew hits, or cached non-English sources). In the
+        # picker flow the dialog was already closed after the English fallback,
+        # so explicitly apply any valid file returned by resolve(). If the done
+        # callback already applied a final file this is harmless: Kodi is simply
+        # pointed at the returned subtitle again.
+        if resolved_path and os.path.isfile(resolved_path):
+            try:
+                p = xbmc.Player()
+                p.setSubtitles(resolved_path)
+                p.showSubtitles(True)
+                try:
+                    _streams = p.getAvailableSubtitleStreams()
+                    if _streams:
+                        p.setSubtitleStream(len(_streams) - 1)
+                except Exception:
+                    pass
+            except Exception as _se:
+                _safe_log(
+                    'bg_translate_picker returned-path setSubtitles raised: '
+                    '{0}'.format(_se), level='DEBUG')
     except Exception as e:
         _safe_log(
             'bg_translate_picker resolve crashed: {0}'.format(e),
