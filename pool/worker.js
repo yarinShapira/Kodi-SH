@@ -99,6 +99,15 @@ function srtQualityOk(srt) {
   return true;
 }
 
+function hasRealEpisodeKey(body) {
+  if (body.type !== 'episode') return true;
+  const season = Number.parseInt(String(body.season || '0'), 10);
+  const episode = Number.parseInt(String(body.episode || '0'), 10);
+  // Season 0 specials are valid, but an episode upload with the form defaults
+  // (S00E00) is not addressable by real client lookups and should be rejected.
+  return Number.isFinite(season) && Number.isFinite(episode) && season >= 0 && episode > 0;
+}
+
 
 function keyFor(p) {
   const lang = (p.lang || 'he').toLowerCase();
@@ -610,6 +619,7 @@ async function contributeCore(env, body) {
   if (!looksLikeSrt(srt)) return json({ ok: false, error: 'invalid srt' }, 400);
   const id = String(body.tmdb_id || body.imdb_id || '').trim();
   if (!id) return json({ ok: false, error: 'no id' }, 400);
+  if (!hasRealEpisodeKey(body)) return json({ ok: false, error: 'episode key required' }, 400);
 
   // Canonical bucketing: resolve the missing id and merge any legacy
   // tmdb/imdb-split buckets, writing back to one primary (tmdb-preferred) key.
@@ -984,7 +994,7 @@ async function renderStats(env, token) {
     if (s === 'not_hebrew') return { cause: 'output not Hebrew', detail: '' };
     return { cause: s, detail: '' };
   };
-  const bar = (label, n, p, col) => `<div class="row"><span class="lbl">${label}</span><div class="track"><div class="fill" style="width:${p}%;background:${col}"></div></div><span class="val">${n} · ${p}%</span></div>`;
+  const bar = (label, n, p, col) => `<div class="row"><span class="lbl">${_esc(label)}</span><div class="track"><div class="fill" style="width:${p}%;background:${col}"></div></div><span class="val">${n} · ${p}%</span></div>`;
   const ep = (r) => r.type === 'episode' ? ` S${String(r.season).padStart(2, '0')}E${String(r.episode).padStart(2, '0')}` : '';
   const fmtT = (s) => new Date(s * 1000).toISOString().replace('T', ' ').slice(0, 16);
   const mColor = { ai_ar: '#46c46a', ai_fallback: '#e0a93a', ai_plain: '#6fb6e0' };
@@ -1188,6 +1198,7 @@ export default {
         srt: srt,
       };
       if (!srtQualityOk(body.srt)) return json({ ok: false, error: 'quality' }, 422);
+      if (!hasRealEpisodeKey(body)) return json({ ok: false, error: 'episode key required' }, 400);
       return await contributeCore(env, body);
     }
 

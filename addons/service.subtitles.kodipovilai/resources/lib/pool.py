@@ -792,7 +792,7 @@ def _post_sync(body):
             return 'ok'  # 2xx with an unparseable body -- assume stored
     except Exception as e:
         code = getattr(e, 'code', None)
-        if code in (400, 401):           # invalid srt / unauthorized -> never ok
+        if code in (400, 401, 403, 404, 409, 422):  # permanent Worker rejection -> never ok
             try:
                 kodi_utils.log('pool drop job (HTTP {0})'.format(code),
                                level='DEBUG')

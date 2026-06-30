@@ -82,6 +82,11 @@ try:
 except ImportError:
     xbmc = None
 
+try:
+    import xbmcvfs
+except ImportError:
+    xbmcvfs = None
+
 ADDON_ID = 'service.subtitles.kodipovilai'
 FIRST_RUN_MARKER = '.disable_on_first_run'
 _subs_filename_publisher = None
@@ -142,7 +147,10 @@ def _maybe_purge_temp_once():
     try:
         if kodi_utils.get_setting('_temp_purge_done', '') == TEMP_PURGE_VERSION:
             return
-        temp_dir = kodi_utils.translate_path('special://temp/')
+        if xbmcvfs is not None:
+            temp_dir = xbmcvfs.translatePath('special://temp/')
+        else:
+            temp_dir = ''
         if temp_dir and os.path.isdir(temp_dir):
             for fn in os.listdir(temp_dir):
                 if fn.lower().endswith(('.srt', '.sub', '.ass', '.ssa', '.vtt')):
