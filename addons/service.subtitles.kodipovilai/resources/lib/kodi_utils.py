@@ -317,7 +317,7 @@ def current_video_info():
     # one DarkSubs reads). This is the most reliable release name for
     # sync-% matching on debrid streams.
     info['picked_release'] = gi('Window(10000).Property(subs.player_filename)')
-    info['is_episode'] = bool(info['tvshow'] and info['episode'])
+    info['is_episode'] = bool(info['episode'] and (info['tvshow'] or info['season']))
     return info
 
 

@@ -11,7 +11,10 @@ import os
 import threading
 import time
 
-from resources.lib import kodi_utils
+try:
+    from resources.lib import kodi_utils
+except Exception:  # Loaded as top-level pool.py by POV source-window patcher.
+    import kodi_utils
 
 try:
     import urllib.request as _urlreq
@@ -506,7 +509,7 @@ def share_cache(progress_cb=None, should_cancel=None):
     if _CACHE_NAME_RE is None:
         _CACHE_NAME_RE = re.compile(
             r'^(?P<imdb>.+?)_S(?P<s>\d+)E(?P<e>\d+)_(?P<lang>[a-z]+)_'
-            r'[0-9a-f]+\.he\.srt$')
+            r'[0-9a-f]+(?:\.[a-z0-9_-]+)?\.he\.srt$')
 
     base = os.path.join(kodi_utils.cache_dir(), 'translated')
     try:

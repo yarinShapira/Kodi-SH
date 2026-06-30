@@ -1100,7 +1100,7 @@ export default {
       const ktuvit = await readKtuvit(env, keys);
       return json({
         ok: true, key: primaryKey, count: variants.length,
-        variants: variants.map(v => ({ hash: v.hash, release: v.release, source_lang: v.source_lang, kind: v.kind || 'ai', ts: v.ts })),
+        variants: variants.map(v => ({ hash: v.hash || v.result_hash || v.file_id || '', release: v.release, source_lang: v.source_lang, kind: v.kind || 'ai', ts: v.ts })),
         embedded,
         ktuvit: ktuvit.names, ktuvit_checked: ktuvit.checked,
         ktuvit_changed: ktuvit.changed,
@@ -1135,7 +1135,7 @@ export default {
       const { variants } = await readMergedIndex(env, p);
       if (!variants.length) return new Response('not found', { status: 404 });
       const want = (p.hash || '').trim();
-      let v = want ? variants.find(x => x.hash === want) : null;
+      let v = want ? variants.find(x => x.hash === want || x.result_hash === want || x.file_id === want) : null;
       if (!v) { if (want) return new Response('not found', { status: 404 }); v = variants[variants.length - 1]; }
       const srt = await downloadById(env, v.file_id);
       if (!srt) return new Response('fetch failed', { status: 502 });
@@ -1187,6 +1187,7 @@ export default {
         year: String(form.get('year') || '').trim(),
         srt: srt,
       };
+      if (!srtQualityOk(body.srt)) return json({ ok: false, error: 'quality' }, 422);
       return await contributeCore(env, body);
     }
 

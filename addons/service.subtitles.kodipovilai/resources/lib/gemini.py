@@ -88,8 +88,12 @@ def test_key(api_key, model='gemini-3.1-flash-lite'):
     except ValueError:
         raise GeminiError('Unparseable response from API')
 
+    def _supports_generate_content(m):
+        return 'generateContent' in (m.get('supportedGenerationMethods') or [])
+
     available = [m.get('name', '').replace('models/', '')
-                 for m in data.get('models', [])]
+                 for m in data.get('models', [])
+                 if _supports_generate_content(m)]
     if model in available:
         return model
     # If the user's chosen model isn't listed, fall back to any
@@ -97,7 +101,9 @@ def test_key(api_key, model='gemini-3.1-flash-lite'):
     for cand in available:
         if 'flash-lite' in cand:
             return cand
-    return available[0] if available else 'unknown'
+    if not available:
+        raise GeminiError('No generateContent-capable Gemini models are available for this key')
+    return available[0]
 
 
 def generate(api_key, model, prompt, temperature=0.2,

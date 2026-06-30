@@ -1519,8 +1519,19 @@ def resolve(link, info, progress_cb=None, progressive_cb=None):
                     or 'medium').strip().lower()
     thinking_level = None
     thinking_budget = None
+    model_is_gemini3 = model.lower().startswith('gemini-3.')
     if thinking_raw in ('minimal', 'low', 'medium', 'high'):
-        thinking_level = thinking_raw
+        if model_is_gemini3:
+            thinking_level = thinking_raw
+        else:
+            # Gemini 2.5 rejects thinkingLevel; use its supported
+            # thinkingBudget knob for named presets.
+            thinking_budget = {
+                'minimal': 512,
+                'low': 768,
+                'medium': 1024,
+                'high': 2048,
+            }.get(thinking_raw)
     else:
         try:
             thinking_budget = int(thinking_raw)
@@ -1528,7 +1539,7 @@ def resolve(link, info, progress_cb=None, progressive_cb=None):
             thinking_budget = 0
         if thinking_budget <= 0:
             thinking_budget = None
-    if thinking_budget and model.lower().startswith('gemini-3.'):
+    if thinking_budget and model_is_gemini3:
         if thinking_budget <= 512:
             thinking_level = 'minimal'
         elif thinking_budget <= 768:

@@ -1481,15 +1481,23 @@ def _test_save_or_retry(kodi_utils, gemini, api_key, retry_cb):
 
 def _test_key_show_result(kodi_utils, gemini, api_key):
     """Re-test an existing key and show the result in a dialog.
-    Does NOT change the saved key either way (this is the
+    Does NOT change the saved key on failure (this is the
     "🔍 Test connection" entry point from the existing-key
-    menu)."""
+    menu). On success, persist a newly matched fallback model so the
+    next translation uses the same model that just passed validation."""
     kodi_utils.notify('Gemini: בודק...', time_ms=2000)
     try:
         matched = gemini.test_key(api_key)
+        saved_model = (kodi_utils.get_setting('model', '') or '').strip()
+        saved_note = ''
+        if matched and matched != saved_model:
+            if kodi_utils.set_setting('model', matched):
+                saved_note = '\n\nהמודל נשמר להגדרות.'
+            else:
+                saved_note = '\n\nאזהרה: Kodi לא שמר את המודל להגדרות.'
         xbmcgui.Dialog().ok(
             'Gemini AI',
-            '✓ החיבור תקין. מודל: {0}'.format(matched))
+            '✓ החיבור תקין. מודל: {0}{1}'.format(matched, saved_note))
     except gemini.InvalidKey as e:
         xbmcgui.Dialog().ok(
             'Gemini AI',
