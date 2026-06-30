@@ -89,10 +89,9 @@ class Router:
 
             install_action = action or url
             over = self.params.get('over', 'false') == 'true'
-            if install_action == 'normal':
-                over = True
+            wipe = install_action in ('build', 'fresh')
             if install_action in ('build', 'fresh', 'normal'):
-                Wizard().build(name, over=over)
+                Wizard().build(name, over=over, wipe=wipe)
             elif install_action == 'gui':
                 Wizard().gui(name)
             #####################################################

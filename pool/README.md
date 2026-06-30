@@ -28,13 +28,15 @@ one per distinct **source-subtitle content hash** (so a different English source
 4. **Secrets/vars** (Worker → Settings → Variables):
    - `BOT_TOKEN`  = your BotFather token   *(mark as Secret/encrypt)*
    - `CHANNEL_ID` = `-1004388223186`
-   - `API_KEY`    = the shared write key    *(mark as Secret/encrypt)*
+   - `POOL_SECRET` = the shared HMAC signing secret used by the add-on for
+     `/lookup`, `/sub`, and `/contribute` requests *(mark as Secret/encrypt)*
    - `UPLOAD_TOKEN` = a separate token for the manual web upload page
      *(mark as Secret/encrypt; only needed if you use `/upload`)*
 5. Test: open `https://<worker-url>/health` → `{"ok":true}`.
 
-The add-on is wired with the worker URL + `API_KEY` (read endpoints are open;
-only `/contribute` requires the key).
+The add-on is wired with the worker URL + `POOL_SECRET`. Pool traffic is signed;
+if `POOL_SECRET` is missing, real lookup/download/contribute requests return
+unavailable even though `/health` still works.
 
 ## Manual web upload (for subs made outside the add-on)
 `https://<worker-url>/upload` serves a small page where a trusted contributor
@@ -43,7 +45,7 @@ can upload a Hebrew `.srt` from their computer:
   movie/series via a **TMDB title search** (or a pasted TMDB/IMDb id).
 - It requires the **`UPLOAD_TOKEN`** (entered in the page, sent as
   `x-upload-token`) — share it only with people you trust; revoke by changing
-  the secret. The page never exposes `API_KEY`.
+  the secret. The page never exposes `POOL_SECRET`.
 - Uploads go through the SAME pipeline as the add-on: deduped by source **and**
   Hebrew-result hash (so manual uploads never create a duplicate), and posted
   to the channel with the rich caption + document.

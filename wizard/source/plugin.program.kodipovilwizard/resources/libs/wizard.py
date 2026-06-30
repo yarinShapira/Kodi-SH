@@ -70,7 +70,7 @@ class Wizard:
                            yeslabel='[B][COLOR springgreen]Yes[/COLOR][/B]'):
             install.wipe()
 
-    def build(self, name, over=False):
+    def build(self, name, over=False, wipe=True):
         # if action == 'normal':
             # if CONFIG.KEEPTRAKT == 'true':
                 # from resources.libs import traktit
@@ -125,7 +125,8 @@ class Wizard:
                     
                 return
                 
-            install.wipe()
+            if wipe:
+                install.wipe()
                 
             skin.look_and_feel_data('save')
             

@@ -18,7 +18,7 @@ Neither workflow uses any third-party `actions/*` ג€” just system tools and
 
 3. **Merge the auto-PR.** A PR titled "Add encrypted release keystore" appears. Merge it. Now `.secrets/release.keystore.enc` lives in `main`.
 
-4. **Build APKs.** `Actions ג†’ "Build APK and Windows installer" ג†’ Run workflow`. Defaults are fine for the first release (`version=21.3-povil.1`, `version_code=21301`, `kodi_version=21.3`). ~10-15 minutes.
+4. **Build APKs.** `Actions ג†’ "Build APK and Windows installer" ג†’ Run workflow`. Set the required `build_zip_url` input to the published Kodi-SH build zip (for example the `wizard/assets/builds/...zip` URL you want first-launch installs to use). The other defaults are fine for the first release (`version=21.3-povil.1`, `version_code=21301`, `kodi_version=21.3`). ~10-15 minutes.
 
 5. **Done.** A Release tagged `v21.3-povil.1` appears under `Releases` with six attachments (versioned + stable filenames for 32-bit, 64-bit, Windows). The download pages on the GitHub Pages site already link to the stable filenames via `/releases/latest/download/`, so they go live automatically.
 

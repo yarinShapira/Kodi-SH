@@ -26,6 +26,14 @@ import re
 from resources.libs.common.config import CONFIG
 
 
+def _version_key(value):
+    return [int(part) for part in re.findall(r'\d+', str(value or '0'))] or [0]
+
+
+def _is_newer_version(latest, current):
+    return _version_key(latest) > _version_key(current)
+
+
 def wizard_update():
     from resources.libs import check
     from resources.libs.common import logging
@@ -42,7 +50,7 @@ def wizard_update():
             wid, ver, zip = check.check_wizard('all')
         except:
             return
-        if ver > CONFIG.ADDON_VERSION:
+        if _is_newer_version(ver, CONFIG.ADDON_VERSION):
             # yes = dialog.yesno(CONFIG.ADDONTITLE,
                                    # '[COLOR {0}]קיימת גרסה עדכנית יותר ל{1}!'.format(CONFIG.COLOR2, CONFIG.ADDONTITLE)
                                    # +'\n'+'האם ברצונך לעדכן לגרסה [COLOR {0}]v{1}[/COLOR]?[/COLOR]'.format(CONFIG.COLOR1, ver),

@@ -108,10 +108,15 @@ jobs:
           PY
 
           mkdir -p gh/downloads
-          gh release download --repo "$REPO_SLUG" \
-            --pattern "Kodi-SH-64bit.apk" \
-            --pattern "Kodi-SH-32bit.apk" \
-            --dir gh/downloads --clobber
+          ASSETS="$(gh release view --repo "$REPO_SLUG" --json assets --jq '.assets[].name' 2>/dev/null || true)"
+          if grep -qx 'Kodi-SH-64bit.apk' <<<"$ASSETS" && grep -qx 'Kodi-SH-32bit.apk' <<<"$ASSETS"; then
+            gh release download --repo "$REPO_SLUG" \
+              --pattern "Kodi-SH-64bit.apk" \
+              --pattern "Kodi-SH-32bit.apk" \
+              --dir gh/downloads --clobber
+          else
+            echo "No complete APK release assets found yet; publishing Pages without refreshing downloads."
+          fi
 
           touch gh/.nojekyll
           cd gh
