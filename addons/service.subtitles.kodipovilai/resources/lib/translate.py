@@ -1009,6 +1009,7 @@ def resolve(link, info, progress_cb=None, progressive_cb=None):
     kodi_utils.log('resolve: kind={0}'.format(kind), level='INFO')
 
     imdb_id = (info.get('imdb_id') or '').strip()
+    tmdb_id = (info.get('tmdb_id') or '').strip()
     season  = info.get('season') or ''
     episode = info.get('episode') or ''
 
@@ -1477,12 +1478,14 @@ def resolve(link, info, progress_cb=None, progressive_cb=None):
                     level='DEBUG')
     if cast is None:
         try:
+            media_type = 'tv' if info.get('is_episode') else 'movie'
             cast = tmdb_helper.fetch_cast(
-                imdb_id=imdb_id,
-                media_type=('tv' if info.get('is_episode') else 'movie'),
+                imdb_id=imdb_id, tmdb_id=tmdb_id,
+                media_type=media_type,
                 season=season, episode=episode,
             )
-            t2, y2 = tmdb_helper.title_and_year(imdb_id=imdb_id)
+            t2, y2 = tmdb_helper.title_and_year(
+                imdb_id=imdb_id, tmdb_id=tmdb_id, media_type=media_type)
             title = title or t2
             year = year or y2
             if meta_path:
@@ -1497,7 +1500,7 @@ def resolve(link, info, progress_cb=None, progressive_cb=None):
     # Prompt + chunk + translate via Gemini.
     api_key = kodi_utils.get_setting('api_key', '')
     if not api_key:
-        kodi_utils.notify(kodi_utils.localised(33002))
+        kodi_utils.notify(kodi_utils.localised(32552))
         return None
     model = kodi_utils.get_setting('model', 'gemini-3.1-flash-lite') \
             or 'gemini-3.1-flash-lite'
@@ -1864,12 +1867,12 @@ def resolve(link, info, progress_cb=None, progressive_cb=None):
                 )
             except gemini.QuotaExceeded:
                 raise _AbortTranslation('quota',
-                    kodi_utils.localised(33005))
+                    kodi_utils.localised(32555))
             except gemini.InvalidKey as e:
                 kodi_utils.log('InvalidKey: {0}'.format(e),
                                level='ERROR')
                 raise _AbortTranslation('invalid_key',
-                    kodi_utils.localised(33004, 'API key rejected'))
+                    kodi_utils.localised(32554, 'API key rejected'))
             except gemini.TruncatedResponse:
                 # propagate up to _translate_one which will bisect
                 raise
@@ -1921,7 +1924,7 @@ def resolve(link, info, progress_cb=None, progressive_cb=None):
                     time.sleep(wait)
                     continue
                 raise _AbortTranslation('error',
-                    kodi_utils.localised(33008, str(e)[:80]),
+                    kodi_utils.localised(32558, str(e)[:80]),
                     detail=str(e)[:100])
 
     # Parallel chunk dispatch. Gemini Flash Lite is 15 RPM, so 3

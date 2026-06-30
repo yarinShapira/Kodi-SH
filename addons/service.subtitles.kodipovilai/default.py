@@ -320,7 +320,7 @@ def _handle_download(handle, params):
                 try:
                     progress.update(
                         pct, 'MoranSubs',
-                        kodi_utils.localised(33001, stage, total))
+                        kodi_utils.localised(32551, stage, total))
                 except Exception:
                     pass
             # Milestone toasts -- always visible above any window.
@@ -1448,6 +1448,8 @@ def _test_save_or_retry(kodi_utils, gemini, api_key, retry_cb):
         # TMDB key, so the user is fully set up the moment Gemini
         # connects.
         saved = kodi_utils.set_setting('api_key', api_key)
+        if saved:
+            saved = kodi_utils.set_setting('model', matched)
         if not saved:
             # Kodi silently rejected our setSetting -- happens on
             # some Kodi/Android combos where the addon UI doesn't
@@ -1522,11 +1524,13 @@ def _handle_test_connection(_params):
               or 'gemini-3.1-flash-lite'
 
     if not api_key:
-        xbmcgui.Dialog().ok('Kodi POV IL', kodi_utils.localised(33002))
+        xbmcgui.Dialog().ok('Kodi POV IL', kodi_utils.localised(32552))
         return
 
     try:
         matched = gemini.test_key(api_key, model=model)
+        if matched and matched != model:
+            kodi_utils.set_setting('model', matched)
         # Test-connection is the canonical "I've adopted this addon"
         # moment; make sure DarkSubs's hook is in place right now so
         # the next subtitle pick already routes through our AI.
@@ -1536,16 +1540,16 @@ def _handle_test_connection(_params):
         except Exception:
             pass
         xbmcgui.Dialog().ok('Kodi POV IL',
-                            kodi_utils.localised(33003, matched))
+                            kodi_utils.localised(32553, matched))
     except gemini.InvalidKey as e:
         xbmcgui.Dialog().ok('Kodi POV IL',
-                            kodi_utils.localised(33004, str(e)[:120]))
+                            kodi_utils.localised(32554, str(e)[:120]))
     except gemini.GeminiError as e:
         xbmcgui.Dialog().ok('Kodi POV IL',
-                            kodi_utils.localised(33004, str(e)[:120]))
+                            kodi_utils.localised(32554, str(e)[:120]))
     except Exception as e:
         xbmcgui.Dialog().ok('Kodi POV IL',
-                            kodi_utils.localised(33004, str(e)[:120]))
+                            kodi_utils.localised(32554, str(e)[:120]))
 
 
 def _handle_open_tmdb_notice(_params):
@@ -1602,7 +1606,7 @@ def _handle_clear_cache(_params):
     if not confirm:
         return
     n = cache.clear_all()
-    xbmcgui.Dialog().ok('Kodi POV IL', kodi_utils.localised(33007, n))
+    xbmcgui.Dialog().ok('Kodi POV IL', kodi_utils.localised(32557, n))
 
 
 def _handle_pool_share_cache(_params):
@@ -1871,7 +1875,7 @@ def _handle_translate_file(params):
                 try:
                     progress.update(
                         pct, 'MoranSubs',
-                        _ku.localised(33001, stage, total))
+                        _ku.localised(32551, stage, total))
                 except Exception:
                     pass
             milestone = (pct // 25) * 25

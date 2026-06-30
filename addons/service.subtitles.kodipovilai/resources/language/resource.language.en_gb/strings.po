@@ -207,39 +207,39 @@ msgid "Budget 2048"
 msgstr "Budget 2048"
 
 # Runtime messages
-msgctxt "#33000"
+msgctxt "#32550"
 msgid "AI Hebrew (translated from {0})"
 msgstr "AI Hebrew (translated from {0})"
 
-msgctxt "#33001"
+msgctxt "#32551"
 msgid "Translating chunk {0}/{1}..."
 msgstr "Translating chunk {0}/{1}..."
 
-msgctxt "#33002"
+msgctxt "#32552"
 msgid "No API key configured. Open Settings to add one."
 msgstr "No Gemini API key. Add a free key in Settings -> Connect Gemini for real AI-quality Hebrew translation."
 
-msgctxt "#33003"
+msgctxt "#32553"
 msgid "Connection successful. Model: {0}"
 msgstr "Connection successful. Model: {0}"
 
-msgctxt "#33004"
+msgctxt "#32554"
 msgid "Connection failed: {0}"
 msgstr "Connection failed: {0}"
 
-msgctxt "#33005"
+msgctxt "#32555"
 msgid "Daily quota exceeded. Try again after midnight UTC."
 msgstr "Daily quota exceeded. Try again after midnight UTC."
 
-msgctxt "#33006"
+msgctxt "#32556"
 msgid "No source subtitles found in supported languages."
 msgstr "No source subtitles found in supported languages."
 
-msgctxt "#33007"
+msgctxt "#32557"
 msgid "Cache cleared. {0} files removed."
 msgstr "Cache cleared. {0} files removed."
 
-msgctxt "#33008"
+msgctxt "#32558"
 msgid "Translation failed: {0}"
 msgstr "Translation failed: {0}"
 

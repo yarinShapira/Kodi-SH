@@ -202,39 +202,39 @@ msgctxt "#32422"
 msgid "Budget 2048"
 msgstr "תקציב 2048"
 
-msgctxt "#33000"
+msgctxt "#32550"
 msgid "AI Hebrew (translated from {0})"
 msgstr "עברית AI (מתורגם מ-{0})"
 
-msgctxt "#33001"
+msgctxt "#32551"
 msgid "Translating chunk {0}/{1}..."
 msgstr "מתרגם chunk {0}/{1}..."
 
-msgctxt "#33002"
+msgctxt "#32552"
 msgid "No API key configured. Open Settings to add one."
 msgstr "אין מפתח Gemini — חבר מפתח חינמי בהגדרות התוסף (חיבור Gemini) לתרגום AI איכותי באמת בעברית."
 
-msgctxt "#33003"
+msgctxt "#32553"
 msgid "Connection successful. Model: {0}"
 msgstr "החיבור הצליח. מודל: {0}"
 
-msgctxt "#33004"
+msgctxt "#32554"
 msgid "Connection failed: {0}"
 msgstr "החיבור נכשל: {0}"
 
-msgctxt "#33005"
+msgctxt "#32555"
 msgid "Daily quota exceeded. Try again after midnight UTC."
 msgstr "הקווטה היומית מוצתה. נסה שוב אחרי חצות UTC."
 
-msgctxt "#33006"
+msgctxt "#32556"
 msgid "No source subtitles found in supported languages."
 msgstr "לא נמצאו כתוביות בשפות הנתמכות."
 
-msgctxt "#33007"
+msgctxt "#32557"
 msgid "Cache cleared. {0} files removed."
 msgstr "ה-cache נוקה. {0} קבצים נמחקו."
 
-msgctxt "#33008"
+msgctxt "#32558"
 msgid "Translation failed: {0}"
 msgstr "התרגום נכשל: {0}"
 

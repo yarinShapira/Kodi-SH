@@ -212,7 +212,7 @@ class AdvancedMenu:
         elif category == 'network':
             value = self._network(tag, current)
             
-        if value:
+        if value is not None and value != '':
             _write_setting(category, tag, value)
             
     def _cache(self, tag, current):
@@ -230,6 +230,8 @@ class AdvancedMenu:
                 items.append(xbmcgui.ListItem(label=str(i), label2=values[i]))
                       
             value = self.dialog.select('Choose a Value', items, preselect=int(current), useDetails=True)
+            if value < 0:
+                return None
         elif tag == 'memorysize':
             free_memory = tools.get_info_label('System.Memory(free)')
             free_converted = tools.convert_size(int(float(free_memory[:-2])) * 1024 * 1024)
