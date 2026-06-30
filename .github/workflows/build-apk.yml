@@ -292,9 +292,12 @@ jobs:
           # label, not only the upstream Kodi core version. That way APK-only
           # fixes with a new version/versionCode still prompt installed clients.
           echo "$VERSION" > wizard/assets/kodi_version_auto_update/apk/latest_apk_version.txt
+          python3 -c "from pathlib import Path; import re; p=Path('wizard/source/plugin.program.kodipovilwizard/uservar.py'); text=p.read_text(); p.write_text(re.sub(r'^APK_RELEASE_VERSION = .*$', \"APK_RELEASE_VERSION = '$VERSION'\", text, flags=re.M))"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
-          git add wizard/assets/kodi_version_auto_update/apk/latest_apk_version.txt
+          git add \
+            wizard/assets/kodi_version_auto_update/apk/latest_apk_version.txt \
+            wizard/source/plugin.program.kodipovilwizard/uservar.py
           if git diff --cached --quiet; then
             echo "Version pointer file already up to date."
             # Refresh gh-pages downloads only when main already advertises this

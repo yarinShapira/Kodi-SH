@@ -121,9 +121,10 @@ jobs:
             echo "::error::latest_apk_version.txt is empty; cannot select APK release assets."
             exit 1
           fi
-          ASSETS="$(gh release view "$APK_VERSION" --repo "$REPO_SLUG" --json assets --jq '.assets[].name' 2>/dev/null || true)"
+          APK_RELEASE_TAG="v${APK_VERSION}"
+          ASSETS="$(gh release view "$APK_RELEASE_TAG" --repo "$REPO_SLUG" --json assets --jq '.assets[].name' 2>/dev/null || true)"
           if grep -qx 'Kodi-SH-64bit.apk' <<<"$ASSETS" && grep -qx 'Kodi-SH-32bit.apk' <<<"$ASSETS"; then
-            gh release download "$APK_VERSION" --repo "$REPO_SLUG" \
+            gh release download "$APK_RELEASE_TAG" --repo "$REPO_SLUG" \
               --pattern "Kodi-SH-64bit.apk" \
               --pattern "Kodi-SH-32bit.apk" \
               --dir gh/downloads --clobber
