@@ -43,6 +43,13 @@ from resources.libs import skin
 from resources.libs import update
 
 
+def _setting_number(value, default=0):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
 def auto_install_repo():
     if not os.path.exists(os.path.join(CONFIG.ADDONS, CONFIG.REPOID)):
         response = tools.open_url(CONFIG.REPOADDONXML)
@@ -395,9 +402,10 @@ def fresh_build_auto_install_if_needed():
 def installed_build_check():
     dialog = xbmcgui.Dialog()
 
-    if not CONFIG.EXTRACT == '100' and CONFIG.EXTERROR > 0:
+    ext_error = _setting_number(CONFIG.EXTERROR)
+    if not CONFIG.EXTRACT == '100' and ext_error > 0:
         logging.log("[Build Installed Check] Build was extracted {0}/100 with [ERRORS: {1}]".format(CONFIG.EXTRACT,
-                                                                                                    CONFIG.EXTERROR),
+                                                                                                    ext_error),
                     level=xbmc.LOGINFO)
         yes = dialog.yesno(CONFIG.ADDONTITLE,
                            '[COLOR {0}]{2}[/COLOR] [COLOR {1}]was not installed correctly![/COLOR]'.format(CONFIG.COLOR1,
@@ -405,7 +413,7 @@ def installed_build_check():
                                                                                                    CONFIG.BUILDNAME)
                            +'\n'+('Installed: [COLOR {0}]{1}[/COLOR] / '
                             'Error Count: [COLOR {2}]{3}[/COLOR]').format(CONFIG.COLOR1, CONFIG.EXTRACT, CONFIG.COLOR1,
-                                                                          CONFIG.EXTERROR)
+                                                                          ext_error)
                            +'\n'+'Would you like to try again?[/COLOR]', nolabel='[B]No Thanks![/B]',
                            yeslabel='[B]Retry Install[/B]')
         CONFIG.clear_setting('build')
@@ -637,19 +645,12 @@ else:
 # KODI-RD-IL - Auto force addon updates on Kodi startup
 if CONFIG.FORCEUPDATEFAST_ONSTARTUP == "true": db.forceUpdate()
 
-# KODI-POV-IL - Clean APK/IPK/Windows/wizard first launch hydration.
-# This is intentionally before notifications and quick_update: a clean profile
-# first needs the full build (userdata + FENtastic + favourites) extracted.
+# KODI-POV-IL - Clean APK/IPK/Windows/wizard first launch hydration. Wait for
+# Home first because the hydration path opens progress/final dialogs; showing
+# those from a startup service before the GUI exists can deadlock Kodi.
+wait_for_gui_ready()
 if fresh_build_auto_install_if_needed():
     sys.exit()
-
-# Everything below can pop a modal dialog (build first-launch notification,
-# skin-switch notification, quick-update prompt). Because this is a
-# start="startup" service those modals can fire before Kodi's GUI exists
-# and deadlock the boot -- the "hangs once after install/quick update,
-# force-stop to recover" symptom. Block here until Home is actually live
-# (bounded) so every dialog below has a real parent window.
-wait_for_gui_ready()
 
 # SHOW NOTIFICATIONS
 if CONFIG.ENABLE_NOTIFICATION == 'Yes' and CONFIG.get_setting('buildname'):

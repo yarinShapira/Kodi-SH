@@ -352,7 +352,7 @@ def download(download_data,MySubFolder):
         else:
             OS_API_KEY_NAME,OS_API_KEY_VALUE = get_random_key()
             
-        log.warning(f"DEBUG | [OpenSubtitles] | Opensubtitles DownloadSubtitles | api_key_attempt_number={api_key_attempt_number} | OS_API_KEY_NAME={OS_API_KEY_NAME} | OS_API_KEY_VALUE={OS_API_KEY_VALUE}")
+        log.warning(f"DEBUG | [OpenSubtitles] | Opensubtitles DownloadSubtitles | api_key_attempt_number={api_key_attempt_number} | OS_API_KEY_NAME={OS_API_KEY_NAME} | OS_API_KEY_VALUE={_masked_api_key(OS_API_KEY_VALUE)}")
 
         headers = {
             "User-Agent": USER_AGENT,
@@ -442,6 +442,15 @@ def get_api_keys(shuffle_keys=False):
 def get_random_key():
     api_keys = get_api_keys(shuffle_keys=True)
     return api_keys[0]
+
+
+def _masked_api_key(value):
+    value = str(value or '')
+    if not value:
+        return ''
+    if len(value) <= 8:
+        return '***'
+    return '{0}…{1}'.format(value[:4], value[-4:])
 
 
 
