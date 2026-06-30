@@ -908,14 +908,17 @@ def _handle_bg_translate_picker(params):
                 _canonical_swap_succeeded = False
                 if payload.get('success'):
                     try:
-                        from resources.lib import cache as _cache
-                        canonical = _cache.translated_path(
-                            (info.get('imdb_id') or '').strip(),
-                            info.get('season') or '',
-                            info.get('episode') or '',
-                            'en',
-                            source_id=payload['source_id'])
-                        if os.path.isfile(canonical):
+                        canonical = payload.get('translated_path')
+                        if not canonical:
+                            from resources.lib import cache as _cache
+                            canonical = _cache.translated_path(
+                                (info.get('imdb_id') or '').strip(),
+                                info.get('season') or '',
+                                info.get('episode') or '',
+                                'en',
+                                source_id=payload['source_id'],
+                                tier=payload.get('tier') or '')
+                        if canonical and os.path.isfile(canonical):
                             # Name the delivered file after the source RELEASE so
                             # Kodi shows the full release name (not a hash); fall
                             # back to the source-id when no release is known.
@@ -2102,14 +2105,17 @@ def _handle_translate_file(params):
                 _canonical_swap_succeeded = False
                 if payload.get('success'):
                     try:
-                        from resources.lib import cache as _cache
-                        canonical = _cache.translated_path(
-                            (info.get('imdb_id') or '').strip(),
-                            info.get('season') or '',
-                            info.get('episode') or '',
-                            'en',
-                            source_id=payload['source_id'])
-                        if os.path.isfile(canonical):
+                        canonical = payload.get('translated_path')
+                        if not canonical:
+                            from resources.lib import cache as _cache
+                            canonical = _cache.translated_path(
+                                (info.get('imdb_id') or '').strip(),
+                                info.get('season') or '',
+                                info.get('episode') or '',
+                                'en',
+                                source_id=payload['source_id'],
+                                tier=payload.get('tier') or '')
+                        if canonical and os.path.isfile(canonical):
                             # Name the delivered file after the source RELEASE so
                             # Kodi shows the full release name (not a hash); fall
                             # back to the source-id when no release is known.

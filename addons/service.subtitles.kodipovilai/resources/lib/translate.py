@@ -2026,6 +2026,8 @@ def resolve(link, info, progress_cb=None, progressive_cb=None):
                             'success': True,
                             'source_id': _progressive_source_id,
                             'release': _src_release,
+                            'translated_path': gpath,
+                            'tier': '',
                         })
                     except Exception:
                         pass
@@ -2159,6 +2161,8 @@ def resolve(link, info, progress_cb=None, progressive_cb=None):
                 'success': True,
                 'source_id': _progressive_source_id,
                 'release': _src_release,
+                'translated_path': translated,
+                'tier': _tier,
             })
         except Exception as e:
             kodi_utils.log(
