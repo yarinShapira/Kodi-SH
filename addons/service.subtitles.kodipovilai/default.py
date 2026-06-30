@@ -494,6 +494,14 @@ def _subtitle_display_name(link, info, path):
     # the real release name in the picked entry -- the most informative.
     if payload.get('filename'):
         candidates.append(payload['filename'])
+    if kind == 'pool':
+        if payload.get('release'):
+            candidates.append(payload['release'])
+        h = (payload.get('hash') or '').strip()
+        if h:
+            base = _title_name()
+            candidates.append('{0}.{1}'.format(base, h[:10])
+                              if base else 'pool.{0}'.format(h[:10]))
     if kind == 'passthrough':
         candidates.append(os.path.basename(path))
     # AI / pool / fallback: the on-disk name is an internal key, so the
@@ -703,6 +711,15 @@ def _try_fast_download(handle, link, info):
                 imdb_id, season, episode, source_lang,
                 source_id=source_id)
             if os.path.isfile(cached):
+                try:
+                    if _deliver_named_subtitle(handle, cached, link, info):
+                        kodi_utils.notify(
+                            'AI: כתוביות מ-cache (תרגום קודם)',
+                            time_ms=3000)
+                        return True
+                except Exception as _de:
+                    _safe_log('fast_download cache named delivery failed: {0}'
+                              .format(_de), level='WARNING')
                 listitem = xbmcgui.ListItem(label=cached)
                 xbmcplugin.addDirectoryItem(
                     handle=handle, url=cached,

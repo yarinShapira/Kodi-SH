@@ -380,8 +380,11 @@ def _cache_key(info):
             sig += '1' if (a.getSetting(s) or '') == 'true' else '0'
     except Exception:
         sig = ''
-    return '{0}_s{1}_e{2}_{3}'.format(
-        mid, info.get('season') or '0', info.get('episode') or '0', sig)
+    rel = _detect_release_name(info)
+    rel_sig = re.sub(r'[^a-z0-9]+', '_', rel.lower()).strip('_')[:80]
+    return '{0}_s{1}_e{2}_{3}_{4}'.format(
+        mid, info.get('season') or '0', info.get('episode') or '0',
+        sig, rel_sig)
 
 
 def _cache_dir():

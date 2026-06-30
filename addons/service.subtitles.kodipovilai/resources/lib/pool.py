@@ -792,6 +792,12 @@ def _post_sync(body):
             return 'ok'  # 2xx with an unparseable body -- assume stored
     except Exception as e:
         code = getattr(e, 'code', None)
+        body_text = ''
+        if code:
+            try:
+                body_text = e.read().decode('utf-8', 'replace')
+            except Exception:
+                body_text = ''
         if code in (400, 401, 403, 404, 409, 422):  # permanent Worker rejection -> never ok
             try:
                 kodi_utils.log('pool drop job (HTTP {0})'.format(code),
@@ -799,7 +805,14 @@ def _post_sync(body):
             except Exception:
                 pass
             return 'drop'
-        try:                              # 429 / 5xx / network -> retry later
+        if code == 429 and 'too many variants' in body_text.lower():
+            try:
+                kodi_utils.log('pool drop job (HTTP 429 too many variants)',
+                               level='DEBUG')
+            except Exception:
+                pass
+            return 'drop'
+        try:                              # other 429 / 5xx / network -> retry later
             kodi_utils.log('pool _post_sync retry: {0}'.format(e), level='DEBUG')
         except Exception:
             pass

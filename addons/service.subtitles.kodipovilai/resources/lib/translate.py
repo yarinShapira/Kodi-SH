@@ -575,7 +575,8 @@ def list_candidates(info, modal_progress=True):
             label = 'כתובית · מאגר'
         return {
             'filename': label, 'language': 'he',
-            'link': _encode_link({'type': 'pool', 'hash': v.get('hash')}),
+            'link': _encode_link({'type': 'pool', 'hash': v.get('hash'),
+                                  'release': release}),
             'sync': 'false', 'rating': '5', 'is_hi': False, 'is_hd': False,
         }
 
@@ -625,7 +626,8 @@ def list_candidates(info, modal_progress=True):
         results.append({
             'filename': label,
             'language': 'he',
-            'link': _encode_link({'type': 'pool', 'hash': v.get('hash')}),
+            'link': _encode_link({'type': 'pool', 'hash': v.get('hash'),
+                                  'release': release}),
             'sync': 'false', 'rating': '5',
             'is_hi': False, 'is_hd': False,
         })

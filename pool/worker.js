@@ -108,6 +108,14 @@ function hasRealEpisodeKey(body) {
   return Number.isFinite(season) && Number.isFinite(episode) && season >= 0 && episode > 0;
 }
 
+function normalizeEpisodeKey(body) {
+  if (body.type !== 'episode') return body;
+  const season = Number.parseInt(String(body.season || '0'), 10);
+  const episode = Number.parseInt(String(body.episode || '0'), 10);
+  if (!Number.isFinite(season) || !Number.isFinite(episode)) return body;
+  return { ...body, season: String(season), episode: String(episode) };
+}
+
 
 function keyFor(p) {
   const lang = (p.lang || 'he').toLowerCase();
@@ -620,6 +628,7 @@ async function contributeCore(env, body) {
   const id = String(body.tmdb_id || body.imdb_id || '').trim();
   if (!id) return json({ ok: false, error: 'no id' }, 400);
   if (!hasRealEpisodeKey(body)) return json({ ok: false, error: 'episode key required' }, 400);
+  body = normalizeEpisodeKey(body);
 
   // Canonical bucketing: resolve the missing id and merge any legacy
   // tmdb/imdb-split buckets, writing back to one primary (tmdb-preferred) key.

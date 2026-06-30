@@ -598,6 +598,11 @@ def copy_common(dst: Path, standalone: bool) -> None:
                 (SRC / "changelog.txt").read_text(encoding="utf-8")),
             encoding="utf-8",
         )
+        settings = dst / "resources" / "settings.xml"
+        settings.write_text(
+            slim_settings_text(settings.read_text(encoding="utf-8")),
+            encoding="utf-8",
+        )
 
 
 def slim_default_text(text: str) -> str:
@@ -614,6 +619,7 @@ def slim_default_text(text: str) -> str:
         '_handle_open_pov_settings',
         '_handle_torbox_status',
         '_handle_debrid_notice_settings',
+        '_handle_remember_source_status',
     ):
         text = re.sub(
             r"\ndef {0}\(_params\):.*?(?=\ndef _handle_|\ndef main\(\):)".format(handler),
@@ -626,6 +632,7 @@ def slim_default_text(text: str) -> str:
         ('open_pov_settings', '_handle_open_pov_settings'),
         ('debrid_notice_settings', '_handle_debrid_notice_settings'),
         ('torbox_status', '_handle_torbox_status'),
+        ('remember_source_status', '_handle_remember_source_status'),
     ):
         text = re.sub(
             r"\n        elif action == '{0}':\n            {1}\(params\)".format(action, handler),
@@ -644,6 +651,17 @@ def slim_default_text(text: str) -> str:
         "        'הוא יוחל אוטומטית מאותו רגע, בלי '\n",
     )
     return text
+
+
+def slim_settings_text(text: str) -> str:
+    """Remove settings actions whose handlers/dependencies are build-only."""
+    return re.sub(
+        r"\n\s*<setting id=\"remember_source_status\" type=\"action\".*?</setting>",
+        "",
+        text,
+        count=1,
+        flags=re.S,
+    )
 
 
 def slim_changelog_text(text: str) -> str:
