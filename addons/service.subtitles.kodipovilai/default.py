@@ -221,6 +221,8 @@ def _handle_download(handle, params):
                 'type': 'ai',
                 'source_lang': _p.get('src_lang') or 'en',
                 'local_path': eng_path,
+                'release': _p.get('filename') or '',
+                'filename': _p.get('filename') or '',
                 'force_ai': True,
             })
         else:
@@ -495,9 +497,10 @@ def _subtitle_display_name(link, info, path):
     if payload.get('filename'):
         candidates.append(payload['filename'])
     if kind == 'pool':
-        if payload.get('release'):
-            candidates.append(payload['release'])
         h = (payload.get('hash') or '').strip()
+        if payload.get('release'):
+            candidates.append('{0}.{1}'.format(payload['release'], h[:10])
+                              if h else payload['release'])
         if h:
             base = _title_name()
             candidates.append('{0}.{1}'.format(base, h[:10])
@@ -864,6 +867,7 @@ def _handle_bg_translate_picker(params):
         'ai_subs.live_translate_source', expected_source_id)
 
     _ver = {'n': 0}
+    _final_swap_applied = {'value': False}
 
     def on_phase(phase, payload):
         try:
@@ -981,6 +985,7 @@ def _handle_bg_translate_picker(params):
                                     except Exception:
                                         pass
                                     _canonical_swap_succeeded = True
+                                    _final_swap_applied['value'] = True
                                 except Exception as _se:
                                     _safe_log(
                                         'bg_translate_picker done '
@@ -1030,9 +1035,10 @@ def _handle_bg_translate_picker(params):
         # cache/already-Hebrew hits, or cached non-English sources). In the
         # picker flow the dialog was already closed after the English fallback,
         # so explicitly apply any valid file returned by resolve(). If the done
-        # callback already applied a final file this is harmless: Kodi is simply
-        # pointed at the returned subtitle again.
-        if resolved_path and os.path.isfile(resolved_path):
+        # callback already applied a release-named final file, do not point Kodi
+        # back at the internal cache filename and undo the user-visible label.
+        if (not _final_swap_applied.get('value') and resolved_path and
+                os.path.isfile(resolved_path)):
             try:
                 p = xbmc.Player()
                 p.setSubtitles(resolved_path)

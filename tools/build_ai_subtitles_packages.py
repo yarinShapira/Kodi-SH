@@ -655,13 +655,20 @@ def slim_default_text(text: str) -> str:
 
 def slim_settings_text(text: str) -> str:
     """Remove settings actions whose handlers/dependencies are build-only."""
-    return re.sub(
-        r"\n\s*<setting id=\"remember_source_status\" type=\"action\".*?</setting>",
-        "",
-        text,
-        count=1,
-        flags=re.S,
-    )
+    for setting_id in (
+        "remember_source",
+        "_remember_source_default_v1",
+        "remember_source_status",
+    ):
+        text = re.sub(
+            r"\n\s*<setting id=\"{0}\"\s+[^>]*>.*?</setting>".format(
+                re.escape(setting_id)),
+            "",
+            text,
+            count=1,
+            flags=re.S,
+        )
+    return text
 
 
 def slim_changelog_text(text: str) -> str:

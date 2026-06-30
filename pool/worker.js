@@ -118,6 +118,7 @@ function normalizeEpisodeKey(body) {
 
 
 function keyFor(p) {
+  p = normalizeEpisodeKey(p);
   const lang = (p.lang || 'he').toLowerCase();
   const id = String(p.tmdb || p.imdb || '').trim();
   const s = String(p.season || '0').trim() || '0';
@@ -173,6 +174,7 @@ async function resolveIds(env, p) {
 
 // Ordered candidate keys (tmdb-based first = canonical write target), deduped.
 async function mediaKeys(env, p) {
+  p = normalizeEpisodeKey(p);
   const lang = (p.lang || 'he').toLowerCase();
   const s = String(p.season || '0').trim() || '0';
   const e = String(p.episode || '0').trim() || '0';
