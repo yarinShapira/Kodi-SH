@@ -802,7 +802,14 @@ $('searchBtn').addEventListener('click',function(){
      if(!d.results.length){R.textContent='לא נמצאו תוצאות.';return}
      d.results.forEach(function(it){
        var div=document.createElement('div');div.className='res';
-       div.innerHTML=(it.poster?'<img src="'+it.poster+'">':'<img>')+'<div><b>'+it.title+'</b> <small>'+(it.year||'')+' · '+(it.type==='episode'?'סדרה':'סרט')+'</small></div>';
+       var img=document.createElement('img');
+       if(it.poster)img.src=it.poster;
+       var meta=document.createElement('div');
+       var title=document.createElement('b');title.textContent=it.title||'';
+       var small=document.createElement('small');
+       small.textContent=(it.year||'')+' · '+(it.type==='episode'?'סדרה':'סרט');
+       meta.appendChild(title);meta.appendChild(document.createTextNode(' '));meta.appendChild(small);
+       div.appendChild(img);div.appendChild(meta);
        div.addEventListener('click',function(){
          $('tmdb_id').value=it.id;$('imdb_id').value='';$('type').value=it.type;
          if(it.title)$('title').value=it.title;if(it.year)$('year').value=it.year;
