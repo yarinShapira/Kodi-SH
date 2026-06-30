@@ -31,7 +31,7 @@ jobs:
 
           if git ls-remote --exit-code --heads "$REMOTE" gh-pages >/dev/null 2>&1; then
             git clone --depth=1 --single-branch --branch=gh-pages \
-              --filter=blob:none --no-checkout "$REMOTE" gh
+              --filter=blob:none "$REMOTE" gh
             cd gh
           else
             mkdir gh

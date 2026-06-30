@@ -145,7 +145,16 @@ def auto_quick_update():
             logging.log('[QUICK-UPDATE] Starting quick update number {0}'
                         .format(note_id))
             gui_url = check.check_build(CONFIG.BUILDNAME, 'gui')
-            if not gui_url or str(gui_url).lower().rstrip() in ('http://', 'https://'):
+            if not gui_url:
+                # If build.txt or Pages is temporarily unavailable, do not
+                # persist the newer note id. A real quickfix for this note may
+                # become reachable again and should be retried next startup.
+                logging.log(
+                    '[QUICK-UPDATE] Could not read gui zip for note {0}; will retry later.'.format(note_id),
+                    level=xbmc.LOGINFO,
+                )
+                return
+            if str(gui_url).lower().rstrip() in ('http://', 'https://'):
                 logging.log(
                     '[QUICK-UPDATE] Note {0} has no installable gui zip; marking it handled.'.format(note_id),
                     level=xbmc.LOGINFO,
@@ -230,6 +239,7 @@ def _profile_has_existing_user_content():
         return True
 
     allowed_data = set([CONFIG.ADDON_ID, CONFIG.REPOID])
+    allowed_data.update(getattr(CONFIG, 'DEFAULTPLUGINS', []))
     try:
         if os.path.isdir(CONFIG.ADDON_DATA):
             for addon_id in os.listdir(CONFIG.ADDON_DATA):
