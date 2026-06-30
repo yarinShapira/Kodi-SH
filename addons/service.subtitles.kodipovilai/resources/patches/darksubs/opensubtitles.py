@@ -45,7 +45,7 @@ sub_color='orange'
 ###### Requests Params ##############
 REQUEST_MAX_RETRIES_NUMBER = 8
 REQUEST_RETRY_DELAY_IN_MS = 500
-OPENSUBTITLES_SEARCH_FALLBACK_VERSION = 4
+OPENSUBTITLES_SEARCH_FALLBACK_VERSION = 5
 #########################################
 
 def _base_search_query(lang_string):

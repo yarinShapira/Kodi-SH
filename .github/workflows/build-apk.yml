@@ -70,7 +70,7 @@ jobs:
       - name: Prepare release input zips
         run: |
           set -euo pipefail
-          VERSION="${{ github.event.inputs.version }}"
+          export VERSION="${{ github.event.inputs.version }}"
           INPUTS="$RUNNER_TEMP/release-inputs"
           mkdir -p "$INPUTS"
           BUILD_ASSET_NAME="$(python3 - <<'PY'
