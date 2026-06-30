@@ -76,6 +76,7 @@ SLIM_SERVICE = r'''# Clean standalone service for Kodi POV IL AI Subtitles.
 # subtitle flow and required DarkSubs/OpenSubtitles integration alive.
 
 import os
+import threading
 
 try:
     import xbmc
@@ -486,6 +487,184 @@ def _maybe_set_default_subtitle_service():
         pass
 
 
+_AUTOSUB_STATE = {'last_file': None, 'busy': False, 'player': None}
+
+
+def _standalone_autosub_on_play():
+    """Auto-search/apply Hebrew subtitles on play for standalone packages.
+
+    This mirrors the full service's listener in a compact form so standalone
+    builds that enable the built-in engine and engine_autosub actually react to
+    playback events instead of only supporting manual subtitle searches.
+    """
+    try:
+        from resources.lib import kodi_utils, translate, subs_engine_bridge
+    except Exception:
+        return
+    try:
+        if not kodi_utils.get_bool('use_builtin_engine', False):
+            return
+        if not kodi_utils.get_bool('engine_autosub', True):
+            return
+        if not kodi_utils.hebrew_subtitle_wanted():
+            return
+    except Exception:
+        return
+    if _AUTOSUB_STATE['busy']:
+        return
+    _AUTOSUB_STATE['busy'] = True
+    try:
+        try:
+            translate.set_quiet(True)
+        except Exception:
+            pass
+        info = {}
+        for _ in range(40):
+            info = kodi_utils.current_video_info()
+            have_id = (info.get('imdb_id') or info.get('tmdb_id')
+                       or info.get('title'))
+            try:
+                have_release = subs_engine_bridge._release_ready(info)
+            except Exception:
+                have_release = True
+            if have_id and have_release:
+                break
+            try:
+                if not xbmc.Player().isPlayingVideo():
+                    return
+            except Exception:
+                pass
+            xbmc.sleep(200)
+        file_key = info.get('filepath') or info.get('title') or ''
+        if file_key and file_key == _AUTOSUB_STATE['last_file']:
+            return
+        _AUTOSUB_STATE['last_file'] = file_key
+        if not (info.get('imdb_id') or info.get('tmdb_id') or info.get('title')):
+            return
+
+        try:
+            player = xbmc.Player()
+            streams = []
+            heb_idx = None
+            for _ in range(80):
+                try:
+                    streams = player.getAvailableSubtitleStreams() or []
+                except Exception:
+                    streams = []
+                if streams:
+                    heb_idx = next((i for i, stream in enumerate(streams)
+                                    if (stream or '').strip().lower() == 'heb'),
+                                   None)
+                    break
+                if not player.isPlayingVideo():
+                    break
+                xbmc.sleep(100)
+            try:
+                subs_engine_bridge.note_playback_streams(info, streams)
+            except Exception:
+                pass
+            if heb_idx is not None:
+                player.setSubtitleStream(heb_idx)
+                player.showSubtitles(True)
+                return
+        except Exception:
+            pass
+
+        candidates = translate.list_candidates(info, modal_progress=False)
+        for candidate in [c for c in candidates if c.get('language') == 'he'][:12]:
+            path = None
+            try:
+                path = translate.resolve(candidate.get('link') or '', info)
+            except Exception:
+                path = None
+            if path:
+                try:
+                    player = xbmc.Player()
+                    if player.isPlayingVideo():
+                        player.setSubtitles(path)
+                        player.showSubtitles(True)
+                    try:
+                        kodi_utils.set_current_subtitle(candidate.get('link') or '')
+                    except Exception:
+                        pass
+                    return
+                except Exception:
+                    pass
+        have_key = bool((kodi_utils.get_setting('api_key', '') or '').strip())
+        ai_ok = (kodi_utils.get_setting('translation_mode', 'ai') or 'ai') != 'none'
+        if have_key and ai_ok:
+            for candidate in candidates:
+                try:
+                    payload = translate._decode_link(candidate.get('link') or '')
+                except Exception:
+                    payload = None
+                if not (payload and payload.get('type') == 'engine_ai'):
+                    continue
+                path = None
+                try:
+                    path = translate.resolve(candidate.get('link') or '', info)
+                except Exception:
+                    path = None
+                if path:
+                    try:
+                        player = xbmc.Player()
+                        if player.isPlayingVideo():
+                            player.setSubtitles(path)
+                            player.showSubtitles(True)
+                        try:
+                            kodi_utils.set_current_subtitle(candidate.get('link') or '')
+                        except Exception:
+                            pass
+                    except Exception:
+                        pass
+                break
+    except Exception as e:
+        try:
+            kodi_utils.log('standalone autosub failed: {0}'.format(e),
+                           level='WARNING')
+        except Exception:
+            pass
+    finally:
+        _AUTOSUB_STATE['busy'] = False
+        try:
+            translate.set_quiet(False)
+        except Exception:
+            pass
+
+
+if xbmc is not None:
+    class _StandaloneAutoSubPlayer(xbmc.Player):
+        def onAVStarted(self):
+            try:
+                threading.Thread(target=_standalone_autosub_on_play,
+                                 daemon=True).start()
+            except Exception:
+                pass
+
+
+def _maybe_start_autosub_player():
+    if xbmc is None:
+        return
+    try:
+        from resources.lib import kodi_utils
+        if not kodi_utils.get_bool('use_builtin_engine', False):
+            return
+        if not kodi_utils.get_bool('engine_autosub', True):
+            return
+    except Exception:
+        return
+    try:
+        _AUTOSUB_STATE['player'] = _StandaloneAutoSubPlayer()
+        try:
+            if xbmc.Player().isPlayingVideo():
+                threading.Thread(target=_standalone_autosub_on_play,
+                                 daemon=True).start()
+        except Exception:
+            pass
+    except Exception:
+        pass
+
+
 def main():
     if xbmc is None:
         return
@@ -501,6 +680,7 @@ def main():
     _maybe_default_builtin_engine()
     _ensure_darksubs_enabled()
     _maybe_set_default_subtitle_service()
+    _maybe_start_autosub_player()
 
     if not _engine_on():
         # DarkSubs provides the sources when the engine is off: keep our hooks

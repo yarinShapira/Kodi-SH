@@ -13,6 +13,9 @@ except ImportError:  # Python 2
 from resources.libs.common.config import CONFIG
 from resources.libs.common import logging
 from resources.libs.common import tools
+from resources.libs import debridit
+from resources.libs import loginit
+from resources.libs import traktit
 from resources.libs.gui import menu
 
 advanced_settings_mode = 'advanced_settings'
@@ -62,7 +65,12 @@ class Router:
             CONFIG.open_settings(name)
             xbmc.executebuiltin('Container.Refresh()')
         elif mode == 'opensettings':  # Open other addons' settings
-            settings_id = eval(url.upper() + 'ID')[name]['plugin']
+            settings_maps = {
+                'trakt': traktit.TRAKTID,
+                'debrid': debridit.DEBRIDID,
+                'login': loginit.LOGINID,
+            }
+            settings_id = settings_maps[url][name]['plugin']
             CONFIG.open_settings(settings_id)
             xbmc.executebuiltin('Container.Refresh()')
         elif mode == 'togglesetting':  # Toggle a setting

@@ -122,14 +122,15 @@ jobs:
             exit 1
           fi
           APK_RELEASE_TAG="v${APK_VERSION}"
-          ASSETS="$(gh release view "$APK_RELEASE_TAG" --repo "$REPO_SLUG" --json assets --jq '.assets[].name' 2>/dev/null || true)"
+          ASSETS="$(gh release view "$APK_RELEASE_TAG" --repo "$REPO_SLUG" --json assets --jq '.assets[].name')"
           if grep -qx 'Kodi-SH-64bit.apk' <<<"$ASSETS" && grep -qx 'Kodi-SH-32bit.apk' <<<"$ASSETS"; then
             gh release download "$APK_RELEASE_TAG" --repo "$REPO_SLUG" \
               --pattern "Kodi-SH-64bit.apk" \
               --pattern "Kodi-SH-32bit.apk" \
               --dir gh/downloads --clobber
           else
-            echo "No complete APK release assets found yet; publishing Pages without refreshing downloads."
+            echo "::error::APK release $APK_RELEASE_TAG is missing one or more stable APK assets; refusing to publish stale downloads."
+            exit 1
           fi
 
           touch gh/.nojekyll

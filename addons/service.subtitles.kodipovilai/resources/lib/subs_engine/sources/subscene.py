@@ -218,7 +218,12 @@ def __find_title_result(media_type, title, year, response):
         previous_year = int(year) - 1
         # Try match with the next year
         next_year = int(year) + 1
-        result = __match_title(media_type, title, response, year) or __match_title(media_type, title, response, year) or __match_title(media_type, title, response, year) or None
+        result = (
+            __match_title(media_type, title, response, year)
+            or __match_title(media_type, title, response, previous_year)
+            or __match_title(media_type, title, response, next_year)
+            or None
+        )
     else:
         result = __match_title(media_type, title, response) or None
 
