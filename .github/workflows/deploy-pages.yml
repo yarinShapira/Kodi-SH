@@ -49,7 +49,15 @@ jobs:
           cd src
           PUBLISH_PATHS="$(git ls-tree --name-only HEAD | grep -vxE 'dist|\.github|\.secrets')"
           cd ../gh
+          if [ -d downloads ]; then
+            mkdir -p ../existing-downloads
+            cp -a downloads/. ../existing-downloads/
+          fi
           find . -mindepth 1 ! -path './.git' ! -path './.git/*' -exec rm -rf {} +
+          if [ -d ../existing-downloads ]; then
+            mkdir -p downloads
+            cp -a ../existing-downloads/. downloads/
+          fi
           cd ../src
           git archive HEAD -- $PUBLISH_PATHS | tar -x -C ../gh
           # Build the subtitle package through the packaging script so the

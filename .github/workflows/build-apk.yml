@@ -34,7 +34,6 @@ env:
   APP_NAME: 'Kodi-SH'
   WIZARD_ID: 'plugin.program.kodipovilwizard'
   WIZARD_VERSION: '0.1.30'
-  BUILD_ASSET_NAME: 'Kodi-SH-FENtastic-test-0.1.101.zip'
 
 jobs:
   build-and-release:
@@ -74,6 +73,32 @@ jobs:
           VERSION="${{ github.event.inputs.version }}"
           INPUTS="$RUNNER_TEMP/release-inputs"
           mkdir -p "$INPUTS"
+          BUILD_ASSET_NAME="$(python3 - <<'PY'
+          from pathlib import Path
+          from urllib.parse import urlparse
+          import re
+
+          text = Path('src/wizard/assets/build.txt').read_text(encoding='utf-8')
+          match = re.search(r'url="([^"]+)"', text)
+          if not match:
+              raise SystemExit('build.txt is missing the build zip url')
+          name = Path(urlparse(match.group(1)).path).name
+          if not name:
+              raise SystemExit('Could not derive build asset name from build.txt url')
+          print(name)
+          PY
+          )"
+          INPUT_ASSET_NAME="$(python3 - <<'PY'
+          from pathlib import Path
+          from urllib.parse import urlparse
+          print(Path(urlparse('${{ github.event.inputs.build_zip_url }}').path).name)
+          PY
+          )"
+          if [ -n "$INPUT_ASSET_NAME" ] && [ "$INPUT_ASSET_NAME" != "$BUILD_ASSET_NAME" ]; then
+            echo "::error::build_zip_url asset '$INPUT_ASSET_NAME' does not match wizard/assets/build.txt asset '$BUILD_ASSET_NAME'"
+            exit 1
+          fi
+          echo "BUILD_ASSET_NAME=$BUILD_ASSET_NAME" >> "$GITHUB_ENV"
           python3 -c "from pathlib import Path; import re; p=Path('src/wizard/source/plugin.program.kodipovilwizard/uservar.py'); text=p.read_text(); p.write_text(re.sub(r'^APK_RELEASE_VERSION = .*$', \"APK_RELEASE_VERSION = '$VERSION'\", text, flags=re.M))"
           (cd src/wizard/source && zip -qr "$INPUTS/wizard.zip" "$WIZARD_ID")
           curl -fL --retry 3 -o "$INPUTS/build.zip" "${{ github.event.inputs.build_zip_url }}"

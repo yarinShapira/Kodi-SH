@@ -144,12 +144,21 @@ def auto_quick_update():
         elif int(note_id) > int(CONFIG.QUICK_UPDATE_NOTEID):
             logging.log('[QUICK-UPDATE] Starting quick update number {0}'
                         .format(note_id))
+            gui_url = check.check_build(CONFIG.BUILDNAME, 'gui')
+            if not gui_url or str(gui_url).lower().rstrip() in ('http://', 'https://'):
+                logging.log(
+                    '[QUICK-UPDATE] Note {0} has no installable gui zip; marking it handled.'.format(note_id),
+                    level=xbmc.LOGINFO,
+                )
+                CONFIG.set_setting('quick_update_noteid', note_id)
+                CONFIG.set_setting('quick_update_notedismiss', 'true')
+                return
             from resources.libs.wizard import Wizard
             quick_update_status = Wizard().quick_update(name=CONFIG.BUILDNAME, auto_quick_update="true")
             if not quick_update_status:
-                # Do not persist/dismiss the newer id when the feed has quick
-                # updates disabled (gui="http://") or the download fails; the
-                # same id should be retried once a real quickfix asset exists.
+                # Do not persist/dismiss the newer id when a real quickfix
+                # download fails; the same id should be retried once the asset
+                # is reachable.
                 return
             CONFIG.set_setting('quick_update_noteid', note_id)
             CONFIG.set_setting('quick_update_notedismiss', 'false')
@@ -186,6 +195,60 @@ def sync_quickfix_build_version():
         )
 
 
+def _profile_has_existing_user_content():
+    """Return True when auto-hydration would overlay an existing Kodi profile."""
+    allowed_addons = set([
+        CONFIG.ADDON_ID,
+        CONFIG.REPOID,
+        'repository.xbmc.org',
+        'script.module.requests',
+        'script.module.six',
+        'script.module.certifi',
+        'script.module.urllib3',
+        'script.module.chardet',
+        'script.module.idna',
+    ])
+    try:
+        if os.path.isdir(CONFIG.ADDONS):
+            for addon_id in os.listdir(CONFIG.ADDONS):
+                addon_path = os.path.join(CONFIG.ADDONS, addon_id)
+                if not os.path.isdir(addon_path):
+                    continue
+                if addon_id in ('packages', 'temp', 'archive_cache'):
+                    continue
+                if addon_id not in allowed_addons:
+                    logging.log(
+                        "[Fresh Build Auto Install] Existing add-on '{0}' found; skipping automatic hydration.".format(addon_id),
+                        level=xbmc.LOGINFO,
+                    )
+                    return True
+    except Exception as err:
+        logging.log(
+            "[Fresh Build Auto Install] Could not inspect add-ons before hydration: {0}".format(err),
+            level=xbmc.LOGERROR,
+        )
+        return True
+
+    allowed_data = set([CONFIG.ADDON_ID, CONFIG.REPOID])
+    try:
+        if os.path.isdir(CONFIG.ADDON_DATA):
+            for addon_id in os.listdir(CONFIG.ADDON_DATA):
+                addon_path = os.path.join(CONFIG.ADDON_DATA, addon_id)
+                if os.path.isdir(addon_path) and addon_id not in allowed_data:
+                    logging.log(
+                        "[Fresh Build Auto Install] Existing add-on data '{0}' found; skipping automatic hydration.".format(addon_id),
+                        level=xbmc.LOGINFO,
+                    )
+                    return True
+    except Exception as err:
+        logging.log(
+            "[Fresh Build Auto Install] Could not inspect add-on data before hydration: {0}".format(err),
+            level=xbmc.LOGERROR,
+        )
+        return True
+    return False
+
+
 def fresh_build_auto_install_if_needed():
     """Hydrate a clean profile with the full build once.
 
@@ -208,6 +271,8 @@ def fresh_build_auto_install_if_needed():
             "skipping hydration and letting auto-set-buildname adopt it.",
             level=xbmc.LOGINFO,
         )
+        return False
+    if _profile_has_existing_user_content():
         return False
 
     build_name = CONFIG.BUILDNAME_DEFAULT
