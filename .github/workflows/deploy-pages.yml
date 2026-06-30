@@ -111,8 +111,7 @@ jobs:
           gh release download --repo "$REPO_SLUG" \
             --pattern "Kodi-SH-64bit.apk" \
             --pattern "Kodi-SH-32bit.apk" \
-            --dir gh/downloads --clobber \
-            || echo "No release APK assets yet; skipping APK publish."
+            --dir gh/downloads --clobber
 
           touch gh/.nojekyll
           cd gh

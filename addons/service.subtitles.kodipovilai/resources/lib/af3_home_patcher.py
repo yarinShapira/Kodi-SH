@@ -403,7 +403,7 @@ POWER_MENU = [
     {
         'label': 'עדכון מהיר',
         'icon': 'special://home/media/build_icons/Wizard/fast_update_pov_il.png',
-        'path': 'PlayMedia("plugin://plugin.program.kodipovilwizard/?mode=install&action=quick_update&name=Kodi+POV+IL+-+FENtastic&auto_quick_update=false")',
+        'path': 'PlayMedia("plugin://plugin.program.kodipovilwizard/?mode=install&action=quick_update&name=Kodi-SH+-+FENtastic&auto_quick_update=false")',
         'target': '',
     },
     {

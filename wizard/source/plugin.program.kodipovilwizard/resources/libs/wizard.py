@@ -962,7 +962,7 @@ AF3_TOOLS = [
         'id': 'quick_update',
         'label': 'עדכון מהיר',
         'icon': 'special://home/media/build_icons/Wizard/fast_update_pov_il.png',
-        'builtin': 'PlayMedia("plugin://plugin.program.kodipovilwizard/?mode=install&action=quick_update&name=Kodi+POV+IL+-+FENtastic&auto_quick_update=false")',
+        'builtin': 'PlayMedia("plugin://plugin.program.kodipovilwizard/?mode=install&action=quick_update&name=Kodi-SH+-+FENtastic&auto_quick_update=false")',
     },
     {
         'id': 'switch_skin',
