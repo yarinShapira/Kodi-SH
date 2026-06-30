@@ -36,12 +36,20 @@ def main():
         sys.exit('ERROR: no classes*.dex in ' + apk)
     total_new = 0
     found_main = False
+    # The bundled wizard intentionally keeps historical package ids in
+    # APK_PACKAGE_IDS so old Kodi-SH/Kodi package names continue to receive
+    # migration/update prompts. Those config literals are not Android runtime
+    # package references and must not be binary-rewritten or fail this guard.
+    allowed_old_refs = {
+        'assets/addons/plugin.program.kodipovilwizard/uservar.py',
+    }
     for n in z.namelist():
         data = z.read(n)
-        for label, old_value in old_forms.items():
-            if data.count(old_value):
-                sys.exit('ERROR: {0} still references old {1} package form: {2}'.format(
-                    n, label, old_value.decode('ascii')))
+        if n not in allowed_old_refs:
+            for label, old_value in old_forms.items():
+                if data.count(old_value):
+                    sys.exit('ERROR: {0} still references old {1} package form: {2}'.format(
+                        n, label, old_value.decode('ascii')))
         total_new += data.count(new_forms['slash'])
         if n.startswith('classes') and n.endswith('.dex') and data.count(main_class):
             found_main = True

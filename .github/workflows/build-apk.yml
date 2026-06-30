@@ -182,8 +182,6 @@ jobs:
                 sed -i "s|</addons>|  <addon optional=\"true\">$addon_id</addon>\n</addons>|" "$MANIFEST_FILE"
               fi
             done
-            python3 src/.github/scripts/patch_apk_package_binary.py \
-              "$WORK/decoded" "$OLD_PACKAGE_ID" "$PACKAGE_ID"
             apktool b -o "$WORK/unsigned.apk" "$WORK/decoded"
             python3 src/.github/scripts/verify_apk_package.py \
               "$WORK/unsigned.apk" \
@@ -231,9 +229,7 @@ jobs:
             ../out/plugin.program.kodipovilwizard-${WIZARD_VERSION}.zip \
             ../out/plugin.program.kodipovilwizard-latest.zip \
             ../out/${BUILD_ASSET_NAME}
-          # Refresh gh-pages downloads even when the committed Kodi-core version
-          # pointer is unchanged, so /downloads/*.apk follows the new release.
-          gh workflow run deploy-pages.yml --ref main || echo "::warning::Could not dispatch Pages refresh; run Deploy GitHub Pages manually."
+          echo "Release assets uploaded; Pages downloads refresh is gated by the pointer update step."
 
       - name: Update version pointer files on main
         env:
@@ -253,6 +249,11 @@ jobs:
           git add wizard/assets/kodi_version_auto_update/apk/latest_apk_version.txt
           if git diff --cached --quiet; then
             echo "Version pointer file already up to date."
+            # Refresh gh-pages downloads only when main already advertises this
+            # APK version. If the pointer changed, this job opens a PR below and
+            # leaves Pages untouched so clients never see new download assets
+            # before latest_apk_version.txt is live on main.
+            gh workflow run deploy-pages.yml --ref main || echo "::warning::Could not dispatch Pages refresh; run Deploy GitHub Pages manually after the pointer is live."
             exit 0
           fi
           git commit -m "Bump latest Kodi-SH Android version to ${VERSION}"

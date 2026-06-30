@@ -87,30 +87,33 @@ class Router:
         elif mode == 'install':  # Builds -> Fresh Install/Standard Install/Apply guifix
             from resources.libs.wizard import Wizard
 
+            install_action = action or url
             over = self.params.get('over', 'false') == 'true'
-            if action == 'build':
+            if install_action == 'normal':
+                over = True
+            if install_action in ('build', 'fresh', 'normal'):
                 Wizard().build(name, over=over)
-            elif action == 'gui':
+            elif install_action == 'gui':
                 Wizard().gui(name)
             #####################################################
             # KODI-RD-IL
-            elif action == 'quick_update':
+            elif install_action == 'quick_update':
                 Wizard().quick_update(name, auto_quick_update)
             # KODI-RD-IL
-            elif action == 'build_switch_skin':
+            elif install_action == 'build_switch_skin':
                 from resources.libs.wizard import build_switch_skin
                 build_switch_skin()
-            elif action == 'install_af3_ce':
+            elif install_action == 'install_af3_ce':
                 from resources.libs.wizard import ensure_arctic_fuse_3_installed
                 ensure_arctic_fuse_3_installed()
-            elif action == 'af3_tools':
+            elif install_action == 'af3_tools':
                 from resources.libs.wizard import af3_tools_menu
                 af3_tools_menu()
-            elif action == 'af3_tool':
+            elif install_action == 'af3_tool':
                 from resources.libs.wizard import af3_tool_action
                 af3_tool_action(self.params.get('tool', ''))
             # KODI-RD-IL
-            elif action == 'kodi_version_update_check':
+            elif install_action == 'kodi_version_update_check':
                 from resources.libs.wizard import kodi_version_update_check
                 kodi_version_update_check(kodi_version_update_check_manual)
             #####################################################
