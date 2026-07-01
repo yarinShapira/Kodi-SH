@@ -193,6 +193,14 @@ jobs:
               fi
             done
             ASSETS="$WORK/decoded/assets"
+            for icon_name in icon16x16.png icon32x32.png icon48x48.png icon80x80.png icon120x120.png icon256x256.png vendor_icon.png; do
+              ICON_SRC="src/.github/assets/apk_media/$icon_name"
+              ICON_DST="$ASSETS/media/$icon_name"
+              if [ -f "$ICON_SRC" ]; then
+                mkdir -p "$(dirname "$ICON_DST")"
+                cp "$ICON_SRC" "$ICON_DST"
+              fi
+            done
             mkdir -p "$ASSETS/addons"
             ADDONS_TO_ENABLE=(
               "$WIZARD_ID"
