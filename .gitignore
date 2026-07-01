@@ -1,0 +1,31 @@
+upstream/
+work/
+zips/
+*.log
+
+# Python bytecode (e.g. from local py_compile verification runs)
+__pycache__/
+*.pyc
+
+# Generated build/release artifacts. Publish these via GitHub Releases,
+# not as source-controlled blobs.
+dist/
+*.zip
+*.apk
+*.exe
+*.msi
+*.dmg
+*.enc
+.secrets/
+*.keystore
+*.jks
+
+# Local build/decode scratch directories
+out/
+build/
+decoded/
+*.tmp
+
+# The encrypted release keystore is intentionally committed; the password stays in GitHub Secrets.
+!.secrets/
+!.secrets/release.keystore.enc
