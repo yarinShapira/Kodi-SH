@@ -136,6 +136,9 @@ jobs:
           touch gh/.nojekyll
           cd gh
           git add -A
+          # APK files are intentionally ignored in source, but gh-pages is a
+          # generated publish branch and must carry the stable download assets.
+          git add -f downloads/Kodi-SH-32bit.apk downloads/Kodi-SH-64bit.apk
           if git diff --cached --quiet; then
             echo "Nothing to publish; gh-pages already matches main."
             exit 0
