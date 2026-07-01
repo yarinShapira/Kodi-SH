@@ -68,6 +68,8 @@ jobs:
             src
 
       - name: Prepare release input zips
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           export VERSION="${{ github.event.inputs.version }}"
@@ -101,7 +103,21 @@ jobs:
           echo "BUILD_ASSET_NAME=$BUILD_ASSET_NAME" >> "$GITHUB_ENV"
           python3 -c "from pathlib import Path; import re; p=Path('src/wizard/source/plugin.program.kodipovilwizard/uservar.py'); text=p.read_text(); p.write_text(re.sub(r'^APK_RELEASE_VERSION = .*$', \"APK_RELEASE_VERSION = '$VERSION'\", text, flags=re.M))"
           (cd src/wizard/source && zip -qr "$INPUTS/wizard.zip" "$WIZARD_ID")
-          curl -fL --retry 3 -o "$INPUTS/build.zip" "${{ github.event.inputs.build_zip_url }}"
+          BUILD_ZIP_URL="${{ github.event.inputs.build_zip_url }}"
+          case "$BUILD_ZIP_URL" in
+            "https://github.com/${{ github.repository }}/releases/download/"*)
+              RELEASE_TAG="$(python3 -c "from urllib.parse import urlparse; parts=urlparse('${{ github.event.inputs.build_zip_url }}').path.strip('/').split('/'); print(parts[parts.index('download') + 1])")"
+              gh release download "$RELEASE_TAG" \
+                --repo "${{ github.repository }}" \
+                --pattern "$BUILD_ASSET_NAME" \
+                --dir "$INPUTS" \
+                --clobber
+              mv "$INPUTS/$BUILD_ASSET_NAME" "$INPUTS/build.zip"
+              ;;
+            *)
+              curl -fL --retry 3 -o "$INPUTS/build.zip" "$BUILD_ZIP_URL"
+              ;;
+          esac
           BUILD_ZIP="$INPUTS/build.zip" python3 - <<'PY'
           import os
           import re
