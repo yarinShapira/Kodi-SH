@@ -402,7 +402,7 @@ def _maybe_default_builtin_engine():
             return
         if kodi_utils.get_setting('use_builtin_engine', 'false') != 'true':
             kodi_utils.set_setting('use_builtin_engine', 'true')
-        if kodi_utils.get_setting('engine_autosub', 'true') == 'false':
+        if kodi_utils.get_setting('engine_autosub', '') == '':
             kodi_utils.set_setting('engine_autosub', 'true')
         kodi_utils.set_setting('_builtin_engine_rollout_v1', '1')
         kodi_utils.log('built-in engine enabled (standalone rollout v1)',
@@ -488,6 +488,10 @@ def _maybe_set_default_subtitle_service():
 
 
 _AUTOSUB_STATE = {'last_file': None, 'busy': False, 'player': None}
+
+
+def _reset_autosub_last_file():
+    _AUTOSUB_STATE['last_file'] = None
 
 
 def _standalone_autosub_on_play():
@@ -640,6 +644,12 @@ if xbmc is not None:
                                  daemon=True).start()
             except Exception:
                 pass
+
+        def onPlayBackStopped(self):
+            _reset_autosub_last_file()
+
+        def onPlayBackEnded(self):
+            _reset_autosub_last_file()
 
 
 def _maybe_start_autosub_player():

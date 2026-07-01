@@ -89,7 +89,7 @@
       <group id="sources" label="32210"> <!-- Source language priority -->
         <setting id="src_english" type="boolean" label="32211" help="32212"> <!-- English -->
           <level>0</level>
-          <default>false</default>
+          <default>true</default>
           <dependencies>
             <dependency type="visible" setting="use_builtin_engine" operator="equals">false</dependency>
           </dependencies>

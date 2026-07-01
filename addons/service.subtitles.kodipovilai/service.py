@@ -1446,6 +1446,10 @@ def _maybe_patch_pov_remember_source():
 _AUTOSUB_STATE = {'last_file': None, 'busy': False, 'player': None}
 
 
+def _reset_autosub_last_file():
+    _AUTOSUB_STATE['last_file'] = None
+
+
 def _autosub_on_play():
     """Phase C auto-on-play: when the built-in engine is on, search and apply
     the best Hebrew subtitle automatically (replacing DarkSubs's autosub).
@@ -1744,6 +1748,12 @@ if xbmc is not None:
                 threading.Thread(target=_autosub_on_play, daemon=True).start()
             except Exception:
                 pass
+
+        def onPlayBackStopped(self):
+            _reset_autosub_last_file()
+
+        def onPlayBackEnded(self):
+            _reset_autosub_last_file()
 
 
 def _start_pool_queue_drainer(monitor):
@@ -2926,10 +2936,9 @@ def _maybe_default_builtin_engine():
         # with no translation -- re-forced once via the v2 marker).
         if kodi_utils.get_setting('use_builtin_engine', 'false') != 'true':
             kodi_utils.set_setting('use_builtin_engine', 'true')
-        # Auto-search & apply on play, like DarkSubs's autosub. Defaults to
-        # 'true' already (and was hidden while the engine was off), so this is
-        # normally a no-op; flip only if a tester explicitly turned it off.
-        if kodi_utils.get_setting('engine_autosub', 'true') == 'false':
+        # Auto-search & apply on play, like DarkSubs's autosub. Seed only when
+        # the setting is missing; preserve an existing explicit opt-out.
+        if kodi_utils.get_setting('engine_autosub', '') == '':
             kodi_utils.set_setting('engine_autosub', 'true')
         kodi_utils.set_setting('_builtin_engine_rollout_v2', '1')
         kodi_utils.log('built-in engine enabled for everyone (rollout v2)',

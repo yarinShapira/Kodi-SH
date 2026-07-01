@@ -214,16 +214,22 @@ def __find_title_result(media_type, title, year, response):
     log.warning(f'DEBUG | [Subscene] | __find_title_result | title={title}')
     
     if media_type == 'movie':
-        # Try match with the previous year
-        previous_year = int(year) - 1
-        # Try match with the next year
-        next_year = int(year) + 1
-        result = (
-            __match_title(media_type, title, response, year)
-            or __match_title(media_type, title, response, previous_year)
-            or __match_title(media_type, title, response, next_year)
-            or None
-        )
+        try:
+            numeric_year = int(year)
+        except (TypeError, ValueError):
+            numeric_year = None
+
+        if numeric_year is None:
+            result = __match_title(media_type, title, response) or None
+        else:
+            result = (
+                __match_title(media_type, title, response, numeric_year)
+                # Try match with the previous year
+                or __match_title(media_type, title, response, numeric_year - 1)
+                # Try match with the next year
+                or __match_title(media_type, title, response, numeric_year + 1)
+                or None
+            )
     else:
         result = __match_title(media_type, title, response) or None
 
