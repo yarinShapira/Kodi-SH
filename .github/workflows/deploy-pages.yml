@@ -1,0 +1,145 @@
+name: Deploy GitHub Pages
+
+# Sync main into gh-pages and generate lightweight Kodi repository/wizard zips
+# at publish time. Release/build binaries stay out of source control.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages-sync
+  cancel-in-progress: false
+
+jobs:
+  sync-main-to-gh-pages:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync main tree to gh-pages
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_SLUG: ${{ github.repository }}
+          PUSHED_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          REMOTE="https://github.com/${REPO_SLUG}.git"
+          gh auth setup-git
+
+          if git ls-remote --exit-code --heads "$REMOTE" gh-pages >/dev/null 2>&1; then
+            git clone --depth=1 --single-branch --branch=gh-pages \
+              --filter=blob:none "$REMOTE" gh
+            cd gh
+          else
+            mkdir gh
+            cd gh
+            git init -b gh-pages
+            git remote add origin "$REMOTE"
+          fi
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          cd ..
+
+          git clone --depth=1 --single-branch --branch=main \
+            --filter=blob:none "$REMOTE" src
+
+          cd src
+          PUBLISH_PATHS="$(git ls-tree --name-only HEAD | grep -vxE 'dist|\.github|\.secrets')"
+          cd ../gh
+          if [ -d downloads ]; then
+            mkdir -p ../existing-downloads
+            cp -a downloads/. ../existing-downloads/
+          fi
+          find . -mindepth 1 ! -path './.git' ! -path './.git/*' -exec rm -rf {} +
+          if [ -d ../existing-downloads ]; then
+            mkdir -p downloads
+            cp -a ../existing-downloads/. downloads/
+          fi
+          cd ../src
+          git archive HEAD -- $PUBLISH_PATHS | tar -x -C ../gh
+          # Build the subtitle package through the packaging script so the
+          # standalone zip is slim and reproducible. Do not inject POOL_SECRET
+          # into public zips; a shared public HMAC secret is not a security
+          # boundary. Pool endpoints stay disabled unless a future server auth
+          # model avoids shipping a write secret to clients.
+          python3 tools/build_ai_subtitles_packages.py
+          cd ..
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import os, zipfile, shutil, hashlib
+
+          src = Path('src')
+          gh = Path('gh')
+
+          def zip_dir(source_dir, dest_zip):
+              source_dir = Path(source_dir)
+              dest_zip = Path(dest_zip)
+              dest_zip.parent.mkdir(parents=True, exist_ok=True)
+              with zipfile.ZipFile(dest_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
+                  for path in source_dir.rglob('*'):
+                      if path.is_file():
+                          zf.write(path, path.relative_to(source_dir.parent))
+
+          repo_addon = src / 'repository' / 'repository.kodipovilai'
+          subs_addon = src / 'addons' / 'service.subtitles.kodipovilai'
+          wizard_addon = src / 'wizard' / 'source' / 'plugin.program.kodipovilwizard'
+
+          zip_dir(repo_addon, gh / 'repo' / 'repository.kodipovilai-1.0.0.zip')
+          zip_dir(repo_addon, gh / 'repo' / 'zips' / 'repository.kodipovilai' / 'repository.kodipovilai-1.0.0.zip')
+          import xml.etree.ElementTree as ET
+          addon_tree = ET.parse(subs_addon / 'addon.xml')
+          addon_root = addon_tree.getroot()
+          addon_version = addon_root.attrib['version']
+          subs_dir = gh / 'repo' / 'zips' / 'service.subtitles.kodipovilai'
+          subs_dir.mkdir(parents=True, exist_ok=True)
+          shutil.copy2(src / 'dist' / f'service.subtitles.kodipovilai-{addon_version}.zip', subs_dir / f'service.subtitles.kodipovilai-{addon_version}.zip')
+          shutil.copy2(src / 'dist' / 'service.subtitles.kodipovilai-latest.zip', subs_dir / 'service.subtitles.kodipovilai-latest.zip')
+          zip_dir(wizard_addon, gh / 'wizard' / 'plugin.program.kodipovilwizard-0.1.30.zip')
+          shutil.copy2(gh / 'wizard' / 'plugin.program.kodipovilwizard-0.1.30.zip', gh / 'wizard' / 'plugin.program.kodipovilwizard-latest.zip')
+
+          # Regenerate repository metadata from the current add-on manifests so
+          # Kodi sees future service.subtitles.kodipovilai version bumps on
+          # Pages without a manual repo/addons.xml edit.
+          repo_tree = ET.parse(src / 'repo' / 'addons.xml')
+          repo_root = repo_tree.getroot()
+          for old in list(repo_root.findall("addon[@id='service.subtitles.kodipovilai']")):
+              repo_root.remove(old)
+          repo_root.append(addon_root)
+          addons_xml = gh / 'repo' / 'addons.xml'
+          ET.indent(repo_tree, space='  ')
+          repo_tree.write(addons_xml, encoding='UTF-8', xml_declaration=True)
+          (gh / 'repo' / 'addons.xml.md5').write_text(hashlib.md5(addons_xml.read_bytes()).hexdigest())
+          PY
+
+          mkdir -p gh/downloads
+          APK_VERSION="$(tr -d '[:space:]' < src/wizard/assets/kodi_version_auto_update/apk/latest_apk_version.txt)"
+          if [ -z "$APK_VERSION" ]; then
+            echo "::error::latest_apk_version.txt is empty; cannot select APK release assets."
+            exit 1
+          fi
+          APK_RELEASE_TAG="v${APK_VERSION}"
+          ASSETS="$(gh release view "$APK_RELEASE_TAG" --repo "$REPO_SLUG" --json assets --jq '.assets[].name')"
+          if grep -qx 'Kodi-SH-64bit.apk' <<<"$ASSETS" && grep -qx 'Kodi-SH-32bit.apk' <<<"$ASSETS"; then
+            gh release download "$APK_RELEASE_TAG" --repo "$REPO_SLUG" \
+              --pattern "Kodi-SH-64bit.apk" \
+              --pattern "Kodi-SH-32bit.apk" \
+              --dir gh/downloads --clobber
+          else
+            echo "::error::APK release $APK_RELEASE_TAG is missing one or more stable APK assets; refusing to publish stale downloads."
+            exit 1
+          fi
+
+          touch gh/.nojekyll
+          cd gh
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing to publish; gh-pages already matches main."
+            exit 0
+          fi
+          SHORT_SHA="$(echo "$PUSHED_SHA" | cut -c1-7)"
+          git commit -q -m "Publish main@${SHORT_SHA}"
+          git push origin gh-pages

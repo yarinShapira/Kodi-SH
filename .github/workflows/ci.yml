@@ -1,0 +1,66 @@
+name: CI
+
+# Lightweight source checks. Deliberately avoids third-party actions so the
+# repository can keep a strict Actions allow policy.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-guardrails:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Install prerequisites
+        run: |
+          set -euo pipefail
+          sudo apt-get update -y
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            git \
+            python3-yaml
+
+      - name: Clone source
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_SLUG: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          REF_NAME: ${{ github.head_ref || github.ref_name }}
+        run: |
+          set -euo pipefail
+          gh repo clone "$REPO_SLUG" src -- --depth=1 --branch "$REF_NAME"
+
+      - name: Block generated binary artifacts in git
+        run: |
+          set -euo pipefail
+          cd src
+          if git ls-files | grep -E '\.(zip|apk|exe|msi|dmg|keystore|jks)$|(^|/)release\.keystore$|\.enc$' | grep -v '^.secrets/release.keystore.enc$'; then
+            echo "::error::Generated binary/signing artifacts must not be committed. Publish them as release assets."
+            exit 1
+          fi
+
+      - name: Compile Python sources
+        run: |
+          set -euo pipefail
+          cd src
+          python3 -m compileall -q \
+            addons/service.subtitles.kodipovilai \
+            wizard/source/plugin.program.kodipovilwizard \
+            .github/scripts \
+            tools
+
+      - name: Parse workflow YAML
+        run: |
+          set -euo pipefail
+          cd src
+          python3 -c "import pathlib, yaml; [print('yaml ok', p) or yaml.safe_load(p.read_text()) for p in sorted(pathlib.Path('.github/workflows').glob('*.yml'))]"
+
+      - name: Verify same-length Android package id
+        run: |
+          set -euo pipefail
+          cd src
+          python3 -c "old='org.xbmc.kodi'; new='org.xbmc.kdsh'; print(old, len(old)); print(new, len(new)); assert len(old) == len(new), 'Kodi-SH package id must match old package length for binary patching'"

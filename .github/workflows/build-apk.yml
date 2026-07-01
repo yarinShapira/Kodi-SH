@@ -1,0 +1,317 @@
+name: Build Android APK release
+
+# Builds rebranded Kodi-SH Android APKs (32-bit + 64-bit) and attaches
+# them to a GitHub Release. Generated build zips are release inputs, not
+# source-controlled files.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release tag / version label (e.g., 21.3-kodish.1)'
+        required: true
+        default: '21.3-kodish.1'
+      version_code:
+        description: 'Android versionCode (integer, must increase each release)'
+        required: true
+        default: '21301'
+      kodi_version:
+        description: 'Upstream Kodi version to rebrand (e.g., 21.3)'
+        required: true
+        default: '21.3'
+      build_zip_url:
+        description: 'HTTPS URL for the full Kodi-SH FENtastic build zip used to seed Python deps and first-launch hydration'
+        required: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+env:
+  OLD_PACKAGE_ID: 'org.xbmc.kodi'
+  PACKAGE_ID: 'org.xbmc.kdsh'
+  APP_NAME: 'Kodi-SH'
+  WIZARD_ID: 'plugin.program.kodipovilwizard'
+  WIZARD_VERSION: '0.1.30'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Install build prerequisites
+        run: |
+          set -euo pipefail
+          sudo apt-get update -y
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            openjdk-17-jdk-headless \
+            zipalign \
+            apksigner \
+            unzip \
+            zip \
+            curl \
+            git
+          sudo curl -fsSL -o /usr/local/bin/apktool.jar \
+            https://github.com/iBotPeaches/Apktool/releases/download/v2.9.3/apktool_2.9.3.jar
+          sudo curl -fsSL -o /usr/local/bin/apktool \
+            https://raw.githubusercontent.com/iBotPeaches/Apktool/v2.9.3/scripts/linux/apktool
+          sudo chmod +x /usr/local/bin/apktool
+
+      - name: Clone main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git clone --depth=1 --branch=main \
+            "https://github.com/${{ github.repository }}.git" \
+            src
+
+      - name: Prepare release input zips
+        run: |
+          set -euo pipefail
+          export VERSION="${{ github.event.inputs.version }}"
+          INPUTS="$RUNNER_TEMP/release-inputs"
+          mkdir -p "$INPUTS"
+          BUILD_ASSET_NAME="$(python3 - <<'PY'
+          from pathlib import Path
+          from urllib.parse import urlparse
+          import re
+
+          text = Path('src/wizard/assets/build.txt').read_text(encoding='utf-8')
+          match = re.search(r'url="([^"]+)"', text)
+          if not match:
+              raise SystemExit('build.txt is missing the build zip url')
+          name = Path(urlparse(match.group(1)).path).name
+          if not name:
+              raise SystemExit('Could not derive build asset name from build.txt url')
+          print(name)
+          PY
+          )"
+          INPUT_ASSET_NAME="$(python3 - <<'PY'
+          from pathlib import Path
+          from urllib.parse import urlparse
+          print(Path(urlparse('${{ github.event.inputs.build_zip_url }}').path).name)
+          PY
+          )"
+          if [ -n "$INPUT_ASSET_NAME" ] && [ "$INPUT_ASSET_NAME" != "$BUILD_ASSET_NAME" ]; then
+            echo "::error::build_zip_url asset '$INPUT_ASSET_NAME' does not match wizard/assets/build.txt asset '$BUILD_ASSET_NAME'"
+            exit 1
+          fi
+          echo "BUILD_ASSET_NAME=$BUILD_ASSET_NAME" >> "$GITHUB_ENV"
+          python3 -c "from pathlib import Path; import re; p=Path('src/wizard/source/plugin.program.kodipovilwizard/uservar.py'); text=p.read_text(); p.write_text(re.sub(r'^APK_RELEASE_VERSION = .*$', \"APK_RELEASE_VERSION = '$VERSION'\", text, flags=re.M))"
+          (cd src/wizard/source && zip -qr "$INPUTS/wizard.zip" "$WIZARD_ID")
+          curl -fL --retry 3 -o "$INPUTS/build.zip" "${{ github.event.inputs.build_zip_url }}"
+          BUILD_ZIP="$INPUTS/build.zip" python3 - <<'PY'
+          import os
+          import re
+          import zipfile
+          from pathlib import Path
+
+          zip_path = Path(os.environ['BUILD_ZIP'])
+          wizard_path = 'addons/plugin.program.kodipovilwizard/uservar.py'
+          tmp_path = zip_path.with_suffix('.patched.zip')
+          patched = False
+          with zipfile.ZipFile(zip_path, 'r') as src, zipfile.ZipFile(tmp_path, 'w', zipfile.ZIP_DEFLATED) as dst:
+              for info in src.infolist():
+                  data = src.read(info.filename)
+                  if info.filename == wizard_path:
+                      text = data.decode('utf-8')
+                      text = re.sub(r'^APK_RELEASE_VERSION = .*$', "APK_RELEASE_VERSION = '{0}'".format(os.environ['VERSION']), text, flags=re.M)
+                      data = text.encode('utf-8')
+                      patched = True
+                  dst.writestr(info, data)
+          if not patched:
+              raise SystemExit('{0} missing from build zip'.format(wizard_path))
+          tmp_path.replace(zip_path)
+          PY
+          test -s "$INPUTS/wizard.zip"
+          test -s "$INPUTS/build.zip"
+          unzip -tq "$INPUTS/wizard.zip"
+          unzip -tq "$INPUTS/build.zip"
+
+      - name: Decrypt release keystore
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "::error::KEYSTORE_PASSWORD secret is not set. See APK_BUILD.md for setup."
+            exit 1
+          fi
+          echo "::add-mask::$KEYSTORE_PASSWORD"
+          if [ ! -f src/.secrets/release.keystore.enc ]; then
+            echo "::error::No .secrets/release.keystore.enc in repo. Run setup-keystore.yml first and merge its PR."
+            exit 1
+          fi
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 \
+            -in src/.secrets/release.keystore.enc \
+            -out "$HOME/release.keystore" \
+            -pass env:KEYSTORE_PASSWORD
+          test -s "$HOME/release.keystore"
+
+      - name: Build both Android APKs
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          echo "::add-mask::$KEYSTORE_PASSWORD"
+          KEY_ALIAS="kodish"
+          VERSION="${{ github.event.inputs.version }}"
+          VERSION_CODE="${{ github.event.inputs.version_code }}"
+          KODI_VERSION="${{ github.event.inputs.kodi_version }}"
+          INPUTS="$RUNNER_TEMP/release-inputs"
+          mkdir -p out
+          if [ "${#OLD_PACKAGE_ID}" -ne "${#PACKAGE_ID}" ]; then
+            echo "::error::OLD_PACKAGE_ID and PACKAGE_ID must be the same length for binary patching"
+            exit 1
+          fi
+          for arch in armeabi-v7a arm64-v8a; do
+            case "$arch" in
+              armeabi-v7a) MIRROR_DIR="arm"; LABEL="32bit" ;;
+              arm64-v8a) MIRROR_DIR="arm64-v8a"; LABEL="64bit" ;;
+            esac
+            WORK="$RUNNER_TEMP/build-$arch"
+            mkdir -p "$WORK"
+            curl -fL --retry 3 -o "$WORK/kodi-official.apk" \
+              "https://mirrors.kodi.tv/releases/android/${MIRROR_DIR}/kodi-${KODI_VERSION}-Omega-${arch}.apk"
+            apktool d -f -s -o "$WORK/decoded" "$WORK/kodi-official.apk"
+            MANIFEST="$WORK/decoded/AndroidManifest.xml"
+            python3 src/.github/scripts/patch_apk_package_binary.py \
+              "$WORK/decoded" "$OLD_PACKAGE_ID" "$PACKAGE_ID"
+            sed -i 's/android:versionCode="[0-9]*"/android:versionCode="'"$VERSION_CODE"'"/' "$MANIFEST"
+            sed -i 's/android:versionName="[^"]*"/android:versionName="'"$VERSION"'"/' "$MANIFEST"
+            for f in "$WORK/decoded/res/values/strings.xml" "$WORK/decoded"/res/values-*/strings.xml; do
+              [ -f "$f" ] || continue
+              sed -i 's|<string name="app_name">[^<]*</string>|<string name="app_name">'"$APP_NAME"'</string>|' "$f" || true
+            done
+            for dens in ldpi mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+              ICON_SRC="src/.github/assets/ic_launcher/ic_launcher-${dens}.png"
+              ICON_DST="$WORK/decoded/res/drawable-${dens}/ic_launcher.png"
+              if [ -f "$ICON_SRC" ] && [ -f "$ICON_DST" ]; then
+                cp "$ICON_SRC" "$ICON_DST"
+              fi
+            done
+            ASSETS="$WORK/decoded/assets"
+            mkdir -p "$ASSETS/addons"
+            ADDONS_TO_ENABLE=(
+              "$WIZARD_ID"
+              "script.module.requests"
+              "script.module.six"
+              "script.module.certifi"
+              "script.module.urllib3"
+              "script.module.chardet"
+              "script.module.idna"
+            )
+            for addon_id in "${ADDONS_TO_ENABLE[@]}"; do
+              if [ -d "$ASSETS/addons/$addon_id" ]; then
+                echo "::error::$addon_id already ships inside the official APK; refusing to overwrite it"
+                exit 1
+              fi
+            done
+            unzip -o "$INPUTS/wizard.zip" -d "$ASSETS/addons/" >/dev/null
+            unzip -o "$INPUTS/build.zip" \
+              'addons/script.module.requests/*' \
+              'addons/script.module.six/*' \
+              'addons/script.module.certifi/*' \
+              'addons/script.module.urllib3/*' \
+              'addons/script.module.chardet/*' \
+              'addons/script.module.idna/*' \
+              -d "$ASSETS/" >/dev/null
+            for addon_id in "${ADDONS_TO_ENABLE[@]}"; do
+              test -f "$ASSETS/addons/$addon_id/addon.xml" || {
+                echo "::error::$addon_id missing from APK assets after bundling"
+                exit 1
+              }
+            done
+            MANIFEST_FILE="$ASSETS/system/addon-manifest.xml"
+            for addon_id in "${ADDONS_TO_ENABLE[@]}"; do
+              if ! grep -qE "<addon[^>]*>$addon_id</addon>" "$MANIFEST_FILE"; then
+                sed -i "s|</addons>|  <addon optional=\"true\">$addon_id</addon>\n</addons>|" "$MANIFEST_FILE"
+              fi
+            done
+            apktool b -o "$WORK/unsigned.apk" "$WORK/decoded"
+            python3 src/.github/scripts/verify_apk_package.py \
+              "$WORK/unsigned.apk" \
+              "${OLD_PACKAGE_ID//./\/}" \
+              "${PACKAGE_ID//./\/}"
+            zipalign -p -f 4 "$WORK/unsigned.apk" "$WORK/aligned.apk"
+            OUT_APK="out/Kodi-SH-${VERSION}-${LABEL}.apk"
+            apksigner sign \
+              --ks "$HOME/release.keystore" \
+              --ks-key-alias "$KEY_ALIAS" \
+              --ks-pass "pass:$KEYSTORE_PASSWORD" \
+              --key-pass "pass:$KEYSTORE_PASSWORD" \
+              --out "$OUT_APK" \
+              "$WORK/aligned.apk"
+            apksigner verify --print-certs "$OUT_APK" | head -10
+          done
+          ls -la out/
+
+      - name: Create / update GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        working-directory: src
+        run: |
+          set -euo pipefail
+          VERSION="${{ github.event.inputs.version }}"
+          TAG="v${VERSION}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release delete "$TAG" --yes --cleanup-tag
+          fi
+          NOTES=$(printf '%s\n%s' \
+            "Built automatically by .github/workflows/build-apk.yml." \
+            "Android APK: separate package id '${PACKAGE_ID}', rebranded label 'Kodi-SH', wizard pre-bundled in assets/; advertised full-build assets are attached to this release.")
+          cp "../out/Kodi-SH-${VERSION}-32bit.apk" "../out/Kodi-SH-32bit.apk"
+          cp "../out/Kodi-SH-${VERSION}-64bit.apk" "../out/Kodi-SH-64bit.apk"
+          cp "$RUNNER_TEMP/release-inputs/wizard.zip" "../out/plugin.program.kodipovilwizard-${WIZARD_VERSION}.zip"
+          cp "$RUNNER_TEMP/release-inputs/wizard.zip" "../out/plugin.program.kodipovilwizard-latest.zip"
+          cp "$RUNNER_TEMP/release-inputs/build.zip" "../out/${BUILD_ASSET_NAME}"
+          gh release create "$TAG" \
+            --title "Kodi-SH ${VERSION}" \
+            --notes "$NOTES" \
+            ../out/Kodi-SH-${VERSION}-32bit.apk \
+            ../out/Kodi-SH-${VERSION}-64bit.apk \
+            ../out/Kodi-SH-32bit.apk \
+            ../out/Kodi-SH-64bit.apk \
+            ../out/plugin.program.kodipovilwizard-${WIZARD_VERSION}.zip \
+            ../out/plugin.program.kodipovilwizard-latest.zip \
+            ../out/${BUILD_ASSET_NAME}
+          echo "Release assets uploaded; Pages downloads refresh is gated by the pointer update step."
+
+      - name: Update version pointer files on main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        working-directory: src
+        run: |
+          set -euo pipefail
+          VERSION="${{ github.event.inputs.version }}"
+          TAG="v${VERSION}"
+          mkdir -p wizard/assets/kodi_version_auto_update/apk
+          # Keep the in-app update pointer tied to the published APK release
+          # label, not only the upstream Kodi core version. That way APK-only
+          # fixes with a new version/versionCode still prompt installed clients.
+          echo "$VERSION" > wizard/assets/kodi_version_auto_update/apk/latest_apk_version.txt
+          python3 -c "from pathlib import Path; import re; p=Path('wizard/source/plugin.program.kodipovilwizard/uservar.py'); text=p.read_text(); p.write_text(re.sub(r'^APK_RELEASE_VERSION = .*$', \"APK_RELEASE_VERSION = '$VERSION'\", text, flags=re.M))"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add \
+            wizard/assets/kodi_version_auto_update/apk/latest_apk_version.txt \
+            wizard/source/plugin.program.kodipovilwizard/uservar.py
+          if git diff --cached --quiet; then
+            echo "Version pointer file already up to date."
+            # Refresh gh-pages downloads only when main already advertises this
+            # APK version. If the pointer changed, this job opens a PR below and
+            # leaves Pages untouched so clients never see new download assets
+            # before latest_apk_version.txt is live on main.
+            gh workflow run deploy-pages.yml --ref main || echo "::warning::Could not dispatch Pages refresh; run Deploy GitHub Pages manually after the pointer is live."
+            exit 0
+          fi
+          git commit -m "Bump latest Kodi-SH Android version to ${VERSION}"
+          gh auth setup-git
+          BRANCH="bot/apk-release-${VERSION}"
+          git checkout -b "$BRANCH"
+          git push origin "$BRANCH"
+          gh pr create --base main --head "$BRANCH" \
+            --title "Bump latest Kodi-SH Android version to ${VERSION}" \
+            --body "Updates the in-app Android version pointer after publishing release ${TAG}."
