@@ -114,6 +114,14 @@ jobs:
                 --clobber
               mv "$INPUTS/$BUILD_ASSET_NAME" "$INPUTS/build.zip"
               ;;
+            "https://github.com/${{ github.repository }}/releases/latest/download/"*)
+              gh release download \
+                --repo "${{ github.repository }}" \
+                --pattern "$BUILD_ASSET_NAME" \
+                --dir "$INPUTS" \
+                --clobber
+              mv "$INPUTS/$BUILD_ASSET_NAME" "$INPUTS/build.zip"
+              ;;
             *)
               curl -fL --retry 3 -o "$INPUTS/build.zip" "$BUILD_ZIP_URL"
               ;;
