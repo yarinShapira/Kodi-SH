@@ -38,10 +38,12 @@ def main():
     found_main = False
     # The bundled wizard intentionally keeps historical package ids in
     # APK_PACKAGE_IDS so old Kodi-SH/Kodi package names continue to receive
-    # migration/update prompts. Those config literals are not Android runtime
+    # migration/update prompts. It may also mention older package IDs in
+    # changelog prose. Those text/config literals are not Android runtime
     # package references and must not be binary-rewritten or fail this guard.
     allowed_old_refs = {
         'assets/addons/plugin.program.kodipovilwizard/uservar.py',
+        'assets/addons/plugin.program.kodipovilwizard/changelog.txt',
     }
     for n in z.namelist():
         data = z.read(n)
