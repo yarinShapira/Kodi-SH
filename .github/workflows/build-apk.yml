@@ -102,29 +102,8 @@ jobs:
           python3 -c "from pathlib import Path; import re; p=Path('src/wizard/source/plugin.program.kodipovilwizard/uservar.py'); text=p.read_text(); p.write_text(re.sub(r'^APK_RELEASE_VERSION = .*$', \"APK_RELEASE_VERSION = '$VERSION'\", text, flags=re.M))"
           (cd src/wizard/source && zip -qr "$INPUTS/wizard.zip" "$WIZARD_ID")
           curl -fL --retry 3 -o "$INPUTS/build.zip" "${{ github.event.inputs.build_zip_url }}"
-          BUILD_ZIP="$INPUTS/build.zip" python3 - <<'PY'
-          import os
-          import re
-          import zipfile
-          from pathlib import Path
-
-          zip_path = Path(os.environ['BUILD_ZIP'])
-          wizard_path = 'addons/plugin.program.kodipovilwizard/uservar.py'
-          tmp_path = zip_path.with_suffix('.patched.zip')
-          patched = False
-          with zipfile.ZipFile(zip_path, 'r') as src, zipfile.ZipFile(tmp_path, 'w', zipfile.ZIP_DEFLATED) as dst:
-              for info in src.infolist():
-                  data = src.read(info.filename)
-                  if info.filename == wizard_path:
-                      text = data.decode('utf-8')
-                      text = re.sub(r'^APK_RELEASE_VERSION = .*$', "APK_RELEASE_VERSION = '{0}'".format(os.environ['VERSION']), text, flags=re.M)
-                      data = text.encode('utf-8')
-                      patched = True
-                  dst.writestr(info, data)
-          if not patched:
-              raise SystemExit('{0} missing from build zip'.format(wizard_path))
-          tmp_path.replace(zip_path)
-          PY
+          python3 src/.github/scripts/patch_full_build_zip.py \
+            "$INPUTS/build.zip" "$VERSION" --repo-root src
           test -s "$INPUTS/wizard.zip"
           test -s "$INPUTS/build.zip"
           unzip -tq "$INPUTS/wizard.zip"
