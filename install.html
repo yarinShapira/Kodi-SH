@@ -315,7 +315,7 @@
 
     <section id="downloader">
       <h2>📱 שיטה 1 — התקנה ל-Android דרך Downloader (טלפון / טאבלט / סטרימר)</h2>
-      <p>הדרך המומלצת לכל מכשיר אנדרואיד — טלפון, טאבלט, או סטרימר Android TV. Downloader מספק עמוד בחירה אחד שמוביל לקובץ המתאים לכל מכשיר.</p>
+      <p>הדרך המומלצת לכל מכשיר אנדרואיד — טלפון, טאבלט, או סטרימר Android TV. להורדה הכי אמינה ב-Downloader השתמש בכתובת ה-APK הישירה לפי סוג המכשיר; יש גם קוד אחד לדף בחירה אם Downloader מצליח לפתוח דפי HTML.</p>
 
       <div class="step">
         <h4>שלב א' — התקן את אפליקציית Downloader</h4>
@@ -326,24 +326,19 @@
       </div>
 
       <div class="step">
-        <h4>שלב ב' — הזן את הקוד הישיר (הדרך הכי אמינה)</h4>
-        <p>הזן ל-Downloader את הקוד הישיר לפי הארכיטקטורה — הוא מוריד את ה-APK מיד בשלב אחד, בלי דף ביניים שתוקע את Downloader:</p>
+        <h4>שלב ב' — הזן את כתובת ה-APK הישירה (הדרך הכי אמינה)</h4>
+        <p>הזן ל-Downloader את כתובת ה-APK הישירה לפי הארכיטקטורה — היא מורידה את ה-APK מיד בשלב אחד, בלי דף ביניים שתוקע את Downloader:</p>
         <ul>
-          <li>פתח את Downloader, ובשדה ה-URL/Code הזן את הקוד לפי המכשיר:</li>
-          <li><strong>אנדרואיד 64-bit</strong> (טלפון / טאבלט / Shield Pro): קוד <code>5364281</code></li>
-          <li><strong>אנדרואיד 32-bit</strong> (Fire TV / שאר הסטרימרים): קוד <code>3158525</code></li>
+          <li>פתח את Downloader, ובשדה ה-URL/Code הזן את הכתובת לפי המכשיר:</li>
+          <li><strong>אנדרואיד 64-bit</strong> (טלפון / טאבלט / Shield Pro): <code>yarinshapira.github.io/Kodi-SH/downloads/Kodi-SH-64bit.apk</code></li>
+          <li><strong>אנדרואיד 32-bit</strong> (Fire TV / שאר הסטרימרים): <code>yarinshapira.github.io/Kodi-SH/downloads/Kodi-SH-32bit.apk</code></li>
           <li>לחץ <strong>GO</strong> (כפתור צהוב) → ההורדה מתחילה מיד (~75MB)</li>
         </ul>
         <div class="callout tip">
-          <strong>אין גישה לקוד?</strong> אפשר להזין במקום הקוד את הכתובת המלאה (אותה הורדה ישירה): <br>
-          64-bit: <code>yarinShapira.github.io/Kodi-SH/downloads/Kodi-SH-64bit.apk</code><br>
-          32-bit: <code>yarinShapira.github.io/Kodi-SH/downloads/Kodi-SH-32bit.apk</code>
+          <strong>רוצה מספר אחד לכל המכשירים?</strong> אפשר להזין את הקוד <code>5827414</code> כדי לפתוח את דף הבחירה הכללי: <code>https://yarinshapira.github.io/Kodi-SH/downloads/</code>. שים לב: אם Downloader נשאר על "Connecting", חזור והזן את כתובת ה-APK הישירה למעלה.
         </div>
         <div class="callout warn">
-          <strong>נתקע על "Connecting" ולא יורד?</strong> סימן שהזנת קוד שמוביל לדף בחירה (HTML) במקום ישירות לקובץ — Downloader לא מוריד דפי אינטרנט. השתמש בקוד הישיר (<code>5364281</code> ל-64 / <code>3158525</code> ל-32) או בכתובת המלאה למעלה. <strong>איזו גרסה?</strong> טלפון / טאבלט / Shield Pro → 64-bit; כל סטרימר אחר → 32-bit (<a href="#bits">הסבר מלא</a>).
-        </div>
-        <div class="callout tip">
-          <strong>חלופה — דף בחירה אחד לכל הפלטפורמות:</strong> הקוד <code>6699594</code> מוביל לעמוד בחירה (32/64-bit, Windows, webOS). שים לב שדף הבחירה עלול לתקוע את Downloader על "Connecting" — אם זה קורה, השתמש בקוד הישיר למעלה.
+          <strong>נתקע על "Connecting" ולא יורד?</strong> סימן שהזנת קוד שמוביל לדף בחירה (HTML) במקום ישירות לקובץ — Downloader לפעמים לא מסתדר עם דפי אינטרנט. השתמש בכתובת ה-APK הישירה למעלה. <strong>איזו גרסה?</strong> טלפון / טאבלט / Shield Pro → 64-bit; כל סטרימר אחר → 32-bit (<a href="#bits">הסבר מלא</a>).
         </div>
       </div>
 
@@ -712,12 +707,12 @@
       <h2>⚠️ פתרון בעיות נפוצות</h2>
 
       <h3>Downloader נתקע על "Connecting" ולא מוריד</h3>
-      <p>הבעיה הכי נפוצה ב-Shield/Android TV. זה קורה כשמזינים ל-Downloader קוד שמוביל ל<strong>דף בחירה (HTML)</strong> במקום ישירות לקובץ — Downloader יודע להוריד קבצים, לא לגלוש בדפי אינטרנט, אז הוא נתקע. <strong>הפתרון:</strong> הזן ב-Downloader את הקוד הישיר (או הכתובת המלאה) לקובץ ה-APK:</p>
+      <p>הבעיה הכי נפוצה ב-Shield/Android TV. זה קורה כשמזינים ל-Downloader קוד שמוביל ל<strong>דף בחירה (HTML)</strong> במקום ישירות לקובץ — Downloader לפעמים לא מסתדר עם דפי אינטרנט, אז הוא נתקע. <strong>הפתרון:</strong> הזן ב-Downloader את כתובת ה-APK הישירה:</p>
       <ul>
-        <li>64-bit: קוד <code>5364281</code> &nbsp;·&nbsp; או כתובת <code>yarinShapira.github.io/Kodi-SH/downloads/Kodi-SH-64bit.apk</code></li>
-        <li>32-bit: קוד <code>3158525</code> &nbsp;·&nbsp; או כתובת <code>yarinShapira.github.io/Kodi-SH/downloads/Kodi-SH-32bit.apk</code></li>
+        <li>64-bit: <code>yarinshapira.github.io/Kodi-SH/downloads/Kodi-SH-64bit.apk</code></li>
+        <li>32-bit: <code>yarinshapira.github.io/Kodi-SH/downloads/Kodi-SH-32bit.apk</code></li>
       </ul>
-      <p>אלה מורידים את ה-APK ישירות (~75MB) בשלב אחד. ראה <a href="#downloader">שיטה 1</a>.</p>
+      <p>אלה מורידים את ה-APK ישירות (~75MB) בשלב אחד. הקוד הכללי <code>5827414</code> מיועד לדף הבחירה, אבל אם הוא נתקע ב-Downloader — השתמש בכתובות הישירות. ראה <a href="#downloader">שיטה 1</a>.</p>
 
       <h3>"ההתקנה נכשלה" באנדרואיד</h3>
       <p>ייתכן שיש לך גרסה קודמת מותקנת עם חתימה שונה → הסר את האפליקציה הקיימת → התקן מחדש. בדוק שבחרת את הגרסה הנכונה (32-bit לרוב הסטרימרים, 64-bit לטלפונים / טאבלטים / Shield Pro 2019) — ראה <a href="#bits">סעיף 32/64-bit</a>.</p>
