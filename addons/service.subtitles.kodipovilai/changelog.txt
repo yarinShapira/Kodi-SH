@@ -1,3 +1,10 @@
+v0.2.294
+- Removed the legacy Wizard self-healer from the new Kodi-SH app path. The APK
+  is a fresh app, so there are no historical Wizard installs to migrate; keeping
+  the healer only produced a startup error when staged_wizard.zip was absent.
+- Cleaned Kodi 21 settings warnings by replacing hidden label controls with edit
+  controls and using visible dependencies for whole-subtitle-only options.
+
 v0.2.291
 - Maintenance and infrastructure hardening. No effect on subtitles.
 
